@@ -1,0 +1,3 @@
+name = External connetion
+description = Module pour se connecter sur un site distant
+core = 7.x

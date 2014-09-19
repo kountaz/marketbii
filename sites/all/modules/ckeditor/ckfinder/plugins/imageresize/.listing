@@ -1,0 +1,5 @@
+drwx---r-x    3 33009      users               5 Jul  3 15:13 .
+drwx---r-x    7 33009      users               7 Jul  3 15:12 ..
+drwx---r-x    2 33009      users               3 Jul  3 15:13 images
+-rw----r--    1 33009      users           19281 Jul  3 15:12 plugin.js
+-rw----r--    1 33009      users           10080 Jul  3 15:12 plugin.php

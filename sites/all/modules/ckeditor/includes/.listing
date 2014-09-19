@@ -1,0 +1,12 @@
+drwx---r-x    3 33009      users              12 Jul  1 17:58 .
+drwx---r-x    7 33009      users              20 Jul  3 15:11 ..
+-rw----r--    1 33009      users           79945 Jul  1 17:58 ckeditor.admin.inc
+-rw----r--    1 33009      users            8558 Jul  1 17:58 ckeditor.admin.js
+-rw----r--    1 33009      users            2155 Jul  1 17:58 ckeditor.drush.inc
+-rw----r--    1 33009      users            4075 Jul  1 17:58 ckeditor.features.inc
+-rw----r--    1 33009      users           59804 Jul  1 17:58 ckeditor.lib.inc
+-rw----r--    1 33009      users           13104 Jul  1 17:58 ckeditor.page.inc
+-rw----r--    1 33009      users            8095 Jul  1 17:58 ckeditor.user.inc
+-rw----r--    1 33009      users           12631 Jul  1 17:58 ckeditor.utils.js
+-rw----r--    1 33009      users            3764 Jul  1 17:58 filemanager.config.php
+drwx---r-x    2 33009      users               6 Jul  1 17:58 jqueryUI

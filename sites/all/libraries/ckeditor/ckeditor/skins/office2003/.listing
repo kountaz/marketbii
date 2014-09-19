@@ -1,0 +1,9 @@
+drwx---r-x    3 33009      users               9 Jul  3 15:09 .
+drwx---r-x    5 33009      users               5 Jul  3 15:09 ..
+-rw----r--    1 33009      users           16465 Jul  3 15:09 dialog.css
+-rw----r--    1 33009      users           35663 Jul  3 15:09 editor.css
+-rw----r--    1 33009      users            5598 Jul  3 15:09 icons.png
+-rw----r--    1 33009      users            5600 Jul  3 15:09 icons_rtl.png
+drwx---r-x    2 33009      users               9 Jul  3 15:09 images
+-rw----r--    1 33009      users            1018 Jul  3 15:09 skin.js
+-rw----r--    1 33009      users            1586 Jul  3 15:09 templates.css

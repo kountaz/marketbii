@@ -1,0 +1,7 @@
+drwx---r-x    5 33009      users               7 Jul  3 15:07 .
+drwx---r-x   86 33009      users              86 Jul  3 15:06 ..
+drwx---r-x    2 33009      users               3 Jul  3 15:07 dialogs
+drwx---r-x    2 33009      users              28 Jul  3 15:07 lang
+-rw----r--    1 33009      users            1080 Jul  3 15:06 plugin.js
+-rw----r--    1 33009      users            1108 Jul  3 15:06 uicolor.gif
+drwx---r-x    3 33009      users               4 Jul  3 15:08 yui

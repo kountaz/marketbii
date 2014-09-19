@@ -1,0 +1,470 @@
+body{
+    background-color: #a9a9a9;
+    width: 200px;
+}
+
+/*
+.menu{
+
+    background-color: #bc8f8f;
+}*/
+
+ #facebook a{
+background:url("facebook_cercle.png")  no-repeat;
+    display:block;
+    width: 85px;
+    height: 70px;
+  text-indent: -1500px;
+}
+#linkedin a{
+background:url("linkedin_cercle.png")  no-repeat;
+    display:block;
+    width: 85px;
+    height: 70px;
+    text-indent: -1500px;
+ 
+}
+#viadeo a{
+background:url("viadeo-black.png")  no-repeat;
+    display:block;
+    width: 85px;
+    height: 70px;
+  text-indent: -1500px;
+}
+
+.contact a{
+    float: left;
+    padding: 10px;
+
+    display:block;
+    width:80px;
+    height:25px;
+    background:url("contact2.jpg") 0 0 no-repeat;
+
+}
+
+.images{
+    width: 50px;
+}
+
+#left: {
+    
+
+    border-radius: 5px;
+    border: solid 1px;
+    /*padding: 40px;
+    font-size: 15px;*/
+    padding: 5px;
+}
+
+
+/*.right{
+   
+
+    border-radius: 5px;
+    border: solid 1px;
+    /*padding: 40px;
+    font-size: 15px;*
+        margin-top: -90px;
+        margin-left: 90px;
+    margin-right: 90px;
+    padding: 5px;
+}*/
+ BLINK{
+    text-align: right;
+ }
+
+
+#site-slogan{
+    border-radius: 20px;
+    /*background-color: white;
+    padding: 20px;
+    font-size: 48px;
+    color: black;*/
+
+    color: black;
+    font-size: 27px;
+    margin-left: 330px;
+    margin-top: -190px;
+    padding: 20px;
+}
+
+#site-slogan #titre{
+
+    color: black;
+      margin-left: 175px;
+}
+
+.plop{
+    text-decoration: blink;
+}
+
+
+
+/*#main-menu-links{
+   background-color: #006400;
+    text-align: center;
+    border-radius: 5px;
+    border: solid 5px;
+
+    /*background: url("controlnav.png");*
+
+}*/
+
+
+
+#main-menu-links {
+    font-size: 0.929em;
+    margin-bottom: 0;
+    
+    margin-top: 20px;
+   /* padding: 0 15px;*/
+   background-image: url("../images/background_menu-3.png");
+ background-position: -16px 35px;
+    background-repeat: no-repeat;
+    color: #000000;
+    height: 31px;
+background-color: white;
+
+padding-top: 40px;
+}
+
+/*#logo{
+    border-radius: 5px;
+    border: solid 1px;
+
+}*/
+
+
+/* ========================================== */
+/*#main-menu-links {
+    background-color: #292929;*
+
+  
+    color: rgba(0, 0, 0, 0);
+    display: inline-block;
+    height: 29px;
+    margin-left: 0;
+    min-width: 868px;
+    padding: 0 0 0 82px;
+        z-index: 20;
+}*/
+
+
+
+#main-menu-links li.menu-237 a{
+   
+    border-radius: 5px;
+    border: solid 1px;
+     
+    background-color: white;
+   
+    background-image: url("../img/home11.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    text-indent: -1500px;
+
+    margin-right: 25px;
+    margin-left: 4px;
+    margin-top: -6px;
+    width: 65px;
+    color: black;
+}
+
+
+#main-menu-links li.menu-237.active a{
+   
+    
+     
+    background-color: white;
+   
+    background-image: url("../img/home11.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    text-indent: -1500px;
+
+      margin-left: 3px;
+    margin-right: 17px;
+    margin-top: -6px;
+    width: 65px;
+}
+
+
+
+#main-menu-links li .active {
+   
+       font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+text-align: center;
+
+    border-radius: 5px;
+    border: solid 1px;
+    color: red;
+
+}
+
+#main-menu-links li.menu-364 a{
+ 
+       font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    margin-left: 70px;
+    background-color: white;
+     border-radius: 5px;
+    border: solid 1px;
+    text-align: center;
+    color: black;
+    font-size: 19px;
+}
+
+
+#main-menu-links li.active  a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+   
+
+    text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+font-size: 19px;
+}
+
+
+#main-menu-links li.menu-366 a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    margin-left: 30px;
+    background-color: white;
+    text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+    font-size: 17px;
+}
+
+
+#main-menu-links li.menu-367 a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    margin-left: 40px;
+    background-color: white;
+text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+    font-size: 19px;
+}
+
+
+#main-menu-links li.menu-368 a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    /*margin-left: 38px;*/
+    background-color: white;
+text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+    font-size: 17px;
+}
+
+#main-menu-links li.menu-369 a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    margin-left: 50px;
+    background-color: white;
+text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+    font-size: 19px;
+}
+
+#main-menu-links li.menu-370 a{
+    font-style: italic;
+   font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: bold;
+    margin-left: 26px;
+    background-color: white;
+text-align: center;
+     border-radius: 5px;
+    border: solid 1px;
+    color: black;
+    font-size: 19px;
+}
+
+
+#main-menu-links a {
+    /*background: url("bullets.png") no-repeat scroll 0 0 rgba(0, 0, 0, 0);
+    border: 0 none;*/
+    display: block;
+    float: left;
+    font-size: 15px;
+    height:40px;
+    margin-right: -5px;
+    margin-top: -6px;
+    width: 135px;
+}
+ #main-menu-links li a.active{
+    background-position:0 -22px;
+    background-color: #a9a9a9;
+}
+
+
+.right em{
+   
+    text-align: center;
+      font-size: 36px;
+    font-weight: bold;
+    margin-left: 315px;
+}
+
+.menu_cv{
+    background-image: url("../images/background_menu-3.png");
+ background-position: -16px 10px;
+    background-repeat: no-repeat;
+    color: #000000;
+    height: 31px;
+background-color: white;
+
+padding-top: 8px;
+}
+
+#cv a{
+   padding: 5px;
+    text-align: center;
+      font-size: 16px;
+    font-weight: bold;
+     border-radius: 5px;
+    border: solid 1px;
+    float: left;
+       margin-left: 30px;
+       background-color: white;
+}
+
+#letM a{
+   padding: 5px;
+    text-align: center;
+      font-size: 16px;
+    font-weight: bold;
+     border-radius: 5px;
+    border: solid 1px;
+    float: left;
+       margin-left: 50px;
+       background-color: white;
+}
+
+#recomma a{
+   padding: 5px;
+    text-align: center;
+      font-size: 16px;
+    font-weight: bold;
+     border-radius: 5px;
+    border: solid 1px;
+    float: left;
+       margin-left: 60px;
+       background-color: white;
+}
+
+#projet a{
+   padding: 5px;
+    text-align: center;
+      font-size: 16px;
+    font-weight: bold;
+     border-radius: 5px;
+    border: solid 1px;
+   margin-left: 80px;
+   background-color: white;
+    
+}
+label{
+  color: black;
+}
+
+#page-wrapper{
+
+
+  margin-left: 50px;
+}
+
+
+#page_right{
+
+    /*margin-left: -100px;*/
+    margin-top: -470px;
+   
+
+position: absolute;
+}
+
+#facebook a:hover{
+   background:url("facebook_cercle2.png")  no-repeat;
+   
+}
+
+
+#linkedin a:hover{
+   background:url("linkedin_cercle2.png")  no-repeat;
+   
+}
+
+
+#viadeo a:hover{
+   background-color: #E3EDEB;
+   width: 60px;
+   border: solid 1;
+   border-radius: 65px;
+   
+}
+
+.page-node-4 #page_right{
+margin-left: -100px;
+    margin-top: -810px;
+  
+}
+
+
+.page-node-6 #page_right{
+margin-left: -100px;
+    margin-top: -975px;
+
+}
+
+
+.page-node-7 #page_right{
+margin-left: -100px;
+    margin-top: -1030px;
+  
+}
+
+
+h1#page-title{
+  visibility: hidden;
+}
+
+
+#carousel-feature a{
+  width: 450px;
+}
+
+#defile{
+  background-color: white;
+    border: 1px solid;
+    border-radius: 5px;
+    margin-bottom: -20px;
+    padding: 5px;
+}
+
+}
+
+.newsLetter table{
+background-color: red;
+
+}

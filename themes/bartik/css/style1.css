@@ -1,0 +1,34 @@
+body {
+background: #cccc99;
+font: 1em verdana, arial, sans-serif;
+}
+#pop {
+display: none;
+position: absolute;
+bottom: 5em;
+right: 10em; 
+width: 20em;
+border: 3px double black;
+background: #f5f5dc;
+z-index: 500;
+cursor: pointer;
+font-size: 80%;
+}
+#pop p {
+margin: 0 0.3em;
+}
+#pop h1 {
+font-size: 110%;
+margin: 0 0 0.5em 0;
+border-bottom: 1px solid black;
+background: white url(top.gif) left top repeat-x;
+color: black;
+text-align: center;
+}
+.fermer {
+margin: 0.5em 0 0 0;
+border-top: 1px solid black;
+background: white url(bottom.gif) left top repeat-x;
+color: black;
+text-align: center;
+}

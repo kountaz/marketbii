@@ -1,0 +1,14 @@
+name = mouski
+description = Description de votre thème (Moussa Camara )
+core = 7.x
+
+screenshot  = screenshot.jpg
+
+engine = phptemplate
+stylesheets[all][] = style.css
+stylesheets[all][] = layout.css
+regions[left] = Left sidebar
+regions[right] = Right sidebar
+regions[content] = Content
+regions[header] = Header
+regions[footer] = Footer

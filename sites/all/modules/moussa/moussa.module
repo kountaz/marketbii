@@ -1,0 +1,2643 @@
+﻿<?php
+
+/**
+ * @file
+ * This file serves as a stub file for the many Examples modules in the
+ * @link http://drupal.org/project/examples Examples for Developers Project @endlink
+ * which you can download and experiment with.
+ *
+ * One might say that examples.module is an example of documentation. However,
+ * note that the example submodules define many doxygen groups, which may or
+ * may not be a good strategy for other modules.
+ */
+
+/**
+ * @defgroup examples Examples
+ * @{
+ * Well-documented API examples for a broad range of Drupal 7 core functionality.
+ *
+ * Developers can learn how to use a particular API quickly by experimenting
+ * with the examples, and adapt them for their own use.
+ *
+ * Download the Examples for Developers Project (and participate with
+ * submissions, bug reports, patches, and documentation) at
+ * http://drupal.org/project/examples
+ */
+/**
+ * Implements hook_help().
+ */
+function probonolab_help($path, $arg) {
+
+    switch ($path) {
+        case "admin/help#probonolab":
+            return '<p>'.  t("Formulaires") .'</p>';
+            break;
+    }
+}
+function probonolab_menu() {
+    $items = array();
+    $items['candidater/%node'] = array(
+        'page callback' => 'ajax_candidater_reponse',
+        'page arguments' => array(1),
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['decandidater/%node'] = array(
+        'page callback' => 'ajax_decandidater_reponse',
+        'page arguments' => array(1),
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['competences/%/%user'] = array(
+        'page callback' => 'page_competences',
+        'page arguments' => array(1, 2),
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['formulaire/volontaire/%'] = array(
+        'page callback' => 'page_volontaire_form',
+        'access callback' => 'user_access',
+        'page arguments' => array(2),
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['formulaire/atelier'] = array(
+        'page callback' => 'page_marathon_compte',
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['formulaire/association/%'] = array(
+        'page callback' => 'page_association_form',
+        'page arguments' => array(2),
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['formulaire/entreprise/%'] = array(
+        'page callback' => 'page_entreprise_form',
+        'page arguments' => array(2),
+        'access callback' => 'user_access',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}
+
+function probonolab_mail($key, &$message, $params) {
+    $options = array(
+        'langcode' => $message['language']->language,
+    );
+
+
+
+
+    switch ($key) {
+        // Send a simple message from the contact form.
+        case 'contact_entreprise':
+            $message['subject'] = t('@site-name Contact Entreprise @orga', array('@orga' => $params['organisation'], '@site-name' => variable_get('site_name', 'Drupal')), $options);
+            // Note that the message body is an array, not a string.
+            $message['body'][] = t('Nom : @nom', array('@nom' => $params['nom']), $options);
+            $message['body'][] = t('Prénom : @prenom', array('@prenom' => $params['prenom']), $options);
+            $message['body'][] = t('Mail : @email', array('@email' => $params['email']), $options);
+            $message['body'][] = t('Téléphone : @tel', array('@tel' => $params['tel']), $options);
+            $message['body'][] = t('Organisation : @organisation', array('@organisation' => $params['organisation']), $options);
+            $message['body'][] = t('Fonction : @fonction', array('@fonction' => $params['fonction']), $options);
+
+            // Because this is just user-entered text, we do not need to translate it.
+
+            // Since user-entered text may have unintentional HTML entities in it like
+            // '<' or '>', we need to make sure these entities are properly escaped,
+            // as the body will later be transformed from HTML to text, meaning
+            // that a normal use of '<' will result in truncation of the message.
+            $message['body'][] = check_plain($params['besoin']);
+            break;
+
+        case 'inscription_association':
+            $message['subject'] = t('Bienvenue chez @site-name ! ', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+            $message['body'][] = drupal_html_to_text($params);
+            break;
+        case 'candidature_projet':
+            $message['subject'] = t('@site-name Candidature volontaire @projet', array('@projet' => $params['projet'], '@site-name' => variable_get('site_name', 'Drupal')), $options);
+            $message['body'][] = t('@prenom @nom  a candidaté au projet @projet le @date.    <a href="dev.probonolab.org/user/@uid">Consuler son profil.</a>', array('@prenom' => $params['prenom'], '@nom' => $params['nom'], '@pseudo' => $params['pseudo'], '@projet' => $params['projet'], '@uid' => $params['uid'], '@date' =>  format_date(time(), "custom", 'j F Y, H\hi')),  $options);
+            break;
+        case 'marathonprobono':
+            $message['subject'] = t('Bienvenue chez  @site-name !', array('@site-name' => variable_get('site_name', 'Drupal')), $options);
+            $message['body'][] = drupal_html_to_text($params);
+            break;
+    }
+}
+//mail association
+function probonolab_association_send($form_values, $body) {
+    $module = 'probonolab';
+    $key = 'inscription_association';
+    $to =  $form_values['mail'];
+    $from = 'contact@probonolab.org';
+    $params = $body;
+    $language = language_default();
+    $send = TRUE;
+    $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+    if ($result['result'] == TRUE) {
+        drupal_set_message(t('Your message has been sent.'));
+    }
+    else {
+        drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+    }
+}
+
+/*================ mail volonotaire inscrit sur un projet ==================
+
+//mail volontaire
+function probonolab_volontaire_send($form_values, $body) {
+    $module = 'probonolab';
+    $key = 'candidature_projet';
+    $to =  $form_values['mail'];
+    $from = 'contact@probonolab.org';
+    $params = $body;
+    $language = language_default();
+    $send = TRUE;
+    $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+    if ($result['result'] == TRUE) {
+        drupal_set_message(t('Your message has been sent.'));
+    }
+    else {
+        drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+    }
+}
+
+
+/*==================== Fin ==================================================*/
+
+
+
+
+
+//mail entreprise
+function probonolab_contact_entreprise_mail_send($form_values) {
+    $module = 'probonolab';
+    $key = 'contact_entreprise';
+    $to =  'contact@probonolab.org';
+    $from = 'contact@probonolab.org';
+    $params = $form_values;
+    $language = language_default();
+    $send = TRUE;
+    $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+    if ($result['result'] == TRUE) {
+        drupal_set_message(t('Your message has been sent.'));
+    }
+    else {
+        drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+    }
+}
+//mail marathonprobono.fr
+function probonolab_marathonprobono_send($form_values, $body) {
+    $module = 'probonolab';
+    $key = 'marathonprobono';
+    $to =  $form_values['mail'];
+    $from = 'contact@probonolab.org';
+    $params = $body;
+    $language = language_default();
+    $send = TRUE;
+    $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+    if ($result['result'] == TRUE) {
+        drupal_set_message(t('Your message has been sent.'));
+    }
+    else {
+        drupal_set_message(t('There was a problem sending your message and it was not sent.'), 'error');
+    }
+}
+//mail candidature
+function probonolab_candidature_projet_mail_send($form_values) {
+    $module = 'probonolab';
+    $key = 'candidature_projet';
+    $to =  'contact@probonolab.org';
+    $from = 'contact@probonolab.org';
+    $params = $form_values;
+    $language = language_default();
+    $send = TRUE;
+    $result = drupal_mail($module, $key, $to, $language, $params, $from, $send);
+}
+
+/*form edit user*/
+function probonolab_form_user_profile_form_alter(&$form, &$form_state) {
+    global $user;
+    $admin = user_access('administer users');
+    if(!$admin && $user->uid){
+        $volontaire = volontaire_db_select($user->uid);
+        if($volontaire) {
+            $site_web = (!empty($volontaire['site_web'])) ? $volontaire['site_web'] : '';
+            $motivations = (!empty($volontaire['motivations'])) ? $volontaire['motivations'] : '';
+            $tel_mobile = (!empty($volontaire['telephone'])) ? $volontaire['telephone'] : '';
+            $tel_fixe = (!empty($volontaire['tel_fixe'])) ? $volontaire['tel_fixe'] : '';
+            $adresse = (!empty($volontaire['adresse'])) ? $volontaire['adresse'] : '';
+            $ville = (!empty($volontaire['ville'])) ? $volontaire['ville'] : '';
+            $cp = (!empty($volontaire['cp'])) ? $volontaire['cp'] : '';
+            $linkedin = (!empty($volontaire['linkedin'])) ? $volontaire['linkedin'] : '';
+            $viadeo = (!empty($volontaire['viadeo'])) ? $volontaire['viadeo'] : '';
+            $prive = (!empty($volontaire['prive'])) ? $volontaire['prive'] : '';
+            $dispo = (!empty($volontaire['dispo'])) ? $volontaire['dispo'] : '';
+            $projet_type = (!empty($volontaire['projet_type'])) ? json_decode($volontaire['projet_type'], true) : '';
+            $inform_projet = (!empty($volontaire['inform_projet'])) ? json_decode($volontaire['inform_projet'], true) : '';
+            $cv_fid = (!empty($volontaire['cv_fid'])) ? $volontaire['cv_fid'] : '';
+
+
+            hide($form['field_type_contact']);
+            hide($form['field_liste_postes']);
+            hide($form['field_contact_connu']);
+            hide($form['field_contact_comp']);
+            hide($form['field_contact_motiv']);
+            hide($form['field_facebook']);
+            hide($form['field_linkedin']);
+            hide($form['field_viadeo']);
+
+            $form['account']['name']['#title'] = t('Pseudo (Nom qui apparaît sur le profil)');
+            $form['account']['name']['#description'] = '';
+            $form['account']['name']['#size'] = 35;
+            $form['account']['pass']['#description'] = '';
+
+            //$form['field_contact_titres']['#title'] = t('Titre');
+            //$form['field_contact_titres']['#size'] = 25;
+            $form['account']['field_contact_titres'] = $form['field_contact_titres'];
+            unset($form['field_contact_titres']);
+            $form['account']['field_type_de_projet'] = $form['field_type_de_projet'];
+            unset($form['field_type_de_projet']);
+            $form['account']['field_contact_nom'] = $form['field_contact_nom'];
+            unset($form['field_contact_nom']);
+            $form['account']['field_contact_prenom'] = $form['field_contact_prenom'];
+            unset($form['field_contact_prenom']);
+            //$form['account']['field_contact_cv'] = $form['field_contact_cv'];
+            unset($form['field_contact_cv']);
+            $form['account']['field_contact_cp'] = $form['field_contact_cp'];
+            unset($form['field_contact_cp']);
+            $form['account']['field_contact_newsletter'] = $form['field_contact_newsletter'];
+            unset($form['field_contact_newsletter']);
+            $form['picture']['#weight'] = -8;
+            $form['picture']['#title'] = '';
+            $form['picture']['picture_current']['#markup'] = '';
+            $form['picture']['picture_upload']['#title'] = t('Votre image de profil');
+
+            $form['picture']['picture_upload']['#size'] = 25;
+            $form['picture']['picture_upload']['#description'] = '';
+            $form['picture']['picture_upload']['#default_value'] = print (!empty($form_state['values']['picture_upload'])) ? $form_state['values']['picture_upload'] : NULL;
+            $form['account']['picture'] =  $form['picture'];
+            unset($form['picture']);
+
+            //custom volontaire
+            $form['account']['profil'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Profil</h2>',
+                '#weight' => 0,
+                '#prefix' => '<div id="tab1" class="tab_content"><br clear="all" />',
+            );
+
+            $form['account']['name']['#weight'] = 5;
+            $form['account']['name']['#prefix'] = '<div class="gauche">';
+
+            $form['account']['field_contact_titres']['#weight'] = 10;
+
+            $form['account']['picture']['#weight'] = 15;
+            $form['account']['picture']['#suffix'] = '</div>';
+            $form['account']['site_web'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#default_value' => $site_web,
+                '#title' => t('Site web'),
+                '#weight' => 25,
+                '#prefix' => '<div class="droite">',
+            );
+            $form['account']['linkedin'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Linkedin'),
+                '#default_value' => $linkedin,
+                '#weight' => 26,
+            );
+            $form['account']['viadeo'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Viadéo'),
+                '#default_value' => $viadeo,
+                '#weight' => 27,
+                '#suffix' => '</div>',
+            );
+            $form['account']['motivations'] = array(
+                '#type' => 'textarea',
+                '#size' => 35,
+                '#title' => t('Pourquoi souhaitez vous participer à un projet probono ?'),
+                '#default_value' => $motivations,
+                '#weight' => 30,
+                '#prefix' => '<br clear="all" />',
+            );
+            $form['account']['projets'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Projets</h2>',
+                '#weight' => 35,
+                '#prefix' => '<div class="gauche">',
+            );
+            $form['account']['field_type_de_projet']['#weight'] = 36;
+            $form['account']['field_type_de_projet']['und']['#title'] = '';
+            $form['account']['field_type_de_projet']['#suffix'] = '</div>';
+            $form['account']['disponibilites'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Disponibilités</h2>',
+                '#weight' => 37,
+                '#prefix' => '<div class="droite">',
+            );
+            $form['account']['dispo'] = array(
+                '#type' => 'radios',
+                '#title' => t('Etes-vous disponible en ce moment ?'),
+                '#default_value' => !empty($dispo) ? $dispo : 0,
+                '#options' => array(0 => 'Non', 1=> 'Oui'),
+                '#weight' => 38,
+                '#suffix' => '</div></div>', //tab1
+
+            );
+            $form['account']['info_perso'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Informations personnelles</h2>',
+                '#weight' => 40,
+                '#prefix' => '<div id="tab2" class="tab_content"><br clear="all" />',
+            );
+            $form['account']['field_contact_nom']['#weight'] = 45;
+            $form['account']['field_contact_nom']['#prefix'] = '<div class="gauche">';
+            $form['account']['field_contact_prenom']['#weight'] = 50;
+            $form['account']['mail']['#weight'] = 55;
+            $form['account']['mail']['#size'] = 35;
+            $form['account']['mail']['#description'] =  '';
+            $form['account']['mobile'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Numéro de mobile'),
+                '#weight' => 60,
+                '#default_value' => $tel_mobile,
+
+                '#required' => TRUE,
+            );
+            $form['account']['fixe'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Numéro de téléphone'),
+                '#default_value' => $tel_fixe,
+                '#weight' => 65,
+                '#suffix' => '</div>',
+            );
+            $form['account']['adresse'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Adresse'),
+                '#default_value' => $adresse,
+                '#weight' => 70,
+                '#prefix' => '<div class="droite">',
+            );
+            $form['account']['field_contact_cp']['#weight'] = 75;
+            $form['account']['field_contact_cp']['#required'] = TRUE;
+            $form['account']['ville'] = array(
+                '#type' => 'textfield',
+                '#size' => 35,
+                '#title' => t('Ville'),
+                '#default_value' => $ville,
+                '#weight' => 80,
+                '#suffix' => '</div>',
+            );
+
+            /*$form['account']['field_contact_cv']['#weight'] = 85;
+            $form['account']['field_contact_cv']['#prefix'] = '<br clear="all" /><div class="gauche">';
+            $form['account']['field_contact_cv']['#suffix'] = '</div>';*/
+
+            $form['account']['cv'] = array(
+                '#type' => 'fieldset',
+                '#weight' => 85,
+                '#prefix' => '<br clear="all" /><div class="gauche">',
+                '#suffix' => '</div>',
+            );
+            $form['account']['cv']['cv'] = array(
+                '#type' => 'value',
+                '#value' => isset($cv_fid) ? $cv_fid : NULL,
+            );
+
+            $form['account']['cv']['cv_delete'] = array(
+                '#type' => 'checkbox',
+                '#title' => t('Supprimer votre CV'),
+                '#access' => !empty($cv_fid),
+            );
+            if(!empty($cv_fid)){
+                $cv = file_load($cv_fid);
+                $form['account']['cv']['cv_current'] = array(
+                    '#title' => t('Votre CV actuel'),
+                    '#markup' => '<a href="'.file_create_url($cv->uri).'">'.$cv->filename.'</a>',
+                );
+            }
+            $form['account']['cv']['cv_upload'] = array(
+                '#type' => 'file',
+                '#title' => t('Votre CV'),
+                '#size' => 25,
+                '#suffix' => '</div>',//tab2
+            );
+
+
+            $form['account']['titre_competences'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Compétences</h2>',
+                '#weight' => 100,
+                '#prefix' => '<div id="tab3" class="tab_content"><br clear="all" />',
+            );
+            $form['account']['competences'] = array(
+                '#type' => 'markup',
+                '#markup' => liste_competences($user->uid),
+                '#weight' => 105,
+            );
+
+            $markup_comps_array = liste_competences_db($user->uid);
+            $markup_comps_inputs = '';
+            $markup_tags = '';
+            if(!empty($markup_comps_array)){
+                foreach($markup_comps_array as $lv1tid => $lv2)
+                {
+                    foreach($lv2 as $lv2tid => $lv3)
+                    {
+                        if(is_array($lv3))
+                        {
+                            foreach($lv3 as $lv3tid => $xp)
+                            {
+                                $comp = taxonomy_term_load($lv3tid);
+                                $markup_tags .= '<span id="comp['.$lv1tid.']['.$lv2tid.']['.$lv3tid.']" class="search-label">
+													<span class="titre">'.$comp->name.'</span>
+													<span class="xp">'.$xp.'</span>
+													<span class="close"></span>
+												</span>';
+                                $markup_comps_inputs .= '<input type="hidden" value="'.$xp.'" name="comp['.$lv1tid.']['.$lv2tid.']['.$lv3tid.']" />';
+                            }
+                        }
+                        else
+                        {
+                            $comp = taxonomy_term_load($lv2tid);
+                            $markup_tags .= '<span id="comp['.$lv1tid.']['.$lv2tid.']" class="search-label">
+												<span class="titre">'.$comp->name.'</span>
+												<span class="xp">0-1</span>
+												<span class="close"></span>
+											</span>';
+                            $markup_comps_inputs .= '<input type="hidden" value="'.$lv3.'" name="comp['.$lv1tid.']['.$lv2tid.']" />';
+                        }
+                    }
+                }
+            }
+            $form['comps'] = array(
+                '#type' => 'markup',
+                '#markup' => '<div id="edit-comps">'.$markup_comps_inputs.'</div>',
+            );
+            $form['account']['select_comp'] = array(
+                '#type' => 'markup',
+                '#markup' => '<div class="listLabels" >
+								<div class="highlight" >Votre sélection</div>
+								<div class="tags" style="margin-left: 135px;">'.$markup_tags.'</div>
+							  </div>',
+                '#weight' => 106,
+                '#suffix' => '<br clear="all" /></div>', //tab3
+            );
+
+            /*
+            $form['account']['dates_dispo'] = array(
+                '#type' => 'date_combo',
+                '#title' => t('Dates dispo'),
+                '#field_name' => 'dates_dispo',
+                '#language' => 'fr',
+                '#weight' => 130,
+                ,
+            );
+            $form['account']['date_debut'] = array(
+                '#type' => 'date_popup',
+                '#title' => t('date de début'),
+                '#date_format' => 'd/m/y',
+                '#weight' => 130,
+                '#description' => '',
+            );
+            $form['account']['date_fin'] = array(
+                '#type' => 'date_popup',
+                '#title' => t('date de fin'),
+                '#suffix' => '</div>',
+                '#date_format' => 'd/m/y',
+                '#weight' => 131,
+                '#description' => '',
+            );*/
+
+
+            $form['account']['confidentialite'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Confidentialité</h2>',
+                '#weight' => 140,
+                '#prefix' => '<div id="tab4" class="tab_content"><br clear="all" /><div class="gauche">',
+            );
+            $form['account']['prive'] = array(
+                '#type' => 'checkbox',
+                '#default_value' => $prive,
+                '#title' => t('Je souhaite rendre mon profil invisible'),
+                '#weight' => 145,
+            );
+            $form['account']['current_pass']['#weight'] = 150;
+            $form['account']['current_pass']['#size'] = 35;
+            $form['account']['pass']['#weight'] = 155;
+            $form['account']['pass']['#size'] = 35;
+            $form['account']['pass1']['#title'] = t('Nouveau mot de passe');
+            $form['account']['pass2']['#title'] = t('Confirmer le nouveau mot de passe');
+            $form['account']['pass']['#suffix'] = '</div>';
+
+            $form['account']['notifications'] = array(
+                '#type' => 'markup',
+                '#markup' => '<h2>Notifications</h2>',
+                '#weight' => 160,
+                '#prefix' => '<div class="droite">',
+            );
+            $form['account']['inform_projet'] = array(
+                '#type' => 'checkbox',
+                '#default_value' => $inform_projet,
+                '#title' => t('Je souhaite être tenu informé des projets qui correspondent à mon profil'),
+                '#weight' => 165,
+            );
+            $form['account']['field_contact_newsletter']['#title'] = t('Je souhaite recevoir la newsletter mensuelle du blog www.pro-bono.fr');
+            $form['account']['field_contact_newsletter']['#weight'] = 170;
+            $form['account']['field_contact_newsletter']['#suffix'] = '</div></div>';//tab4
+            $form['account']['op']['#weight'] = 200;
+            $form['account']['op']['#prefix'] = '<br clear="all" />';
+
+            $form['#validate'][] = 'user_profile_volontaire_form_validate';
+            $form['#submit'][] = 'user_profile_volontaire_form_submit';
+        }
+    }
+}
+function user_profile_volontaire_form_validate($form, &$form_state)
+{
+    $urlregex = "#^(https?|ftp)\:\/\/([a-z0-9+!*(),;?&=\$_.-]+(\:[a-z0-9+!*(),;?&=\$_.-]+)?@)?[a-z0-9+\$_-]+(\.[a-z0-9+\$_-]+)*(\:[0-9]{2,5})?(\/([a-z0-9+\$_-]\.?)+)*\/?(\?[a-z+&\$_.-][a-z0-9;:@/&%=+\$_.-]*)?(#[a-z_.-][a-z0-9+\$_.-]*)?\$#";
+    if (!empty($form_state['values']['linkedin']) && !filter_var($form_state['values']['linkedin'], FILTER_VALIDATE_URL)) {
+        form_set_error('linkedin', t('Il y a une erreur dans l\'adresse de votre profil linkedin (vérifier "http://")'));
+    }
+    if(!empty($form_state['values']['viadeo']) && !filter_var($form_state['values']['viadeo'], FILTER_VALIDATE_URL)) {
+        form_set_error('viadeo', t('Il y a une erreur dans l\'adresse de votre profil vidaéo (vérifier "http://")'));
+    }
+    if(!empty($form_state['values']['site_web']) && !filter_var($form_state['values']['site_web'], FILTER_VALIDATE_URL)) {
+        form_set_error('site_web', t('Il y a une erreur dans l\'adresse de votre site web (vérifier "http://")'));
+    }
+    /*if(!preg_match("#^(2[ab]|0[1-9]|[1-9][0-9])[0-9]{3}$#", $form_state['values']['cp'])) {
+        form_set_error('cp', t('Vous devez renseigner un code postal valide'));
+    }*/
+    if(!empty($form_state['values']['telephone']) && !preg_match("#^0[1-9]([-. ]?[0-9]{2}){4}$#", $form_state['values']['telephone'])) {
+        form_set_error('telephone', t('Vous devez renseigner un numéro de téléphone valide'));
+    }
+}
+function user_profile_volontaire_form_submit($form, &$form_state)
+{
+
+    if(!empty($_POST['comp']))
+    {
+        $comps = $_POST['comp'];
+        $listecomps = '';
+        foreach($comps as $lv1tid => $lv2)
+        {
+            foreach($lv2 as $lv2tid => $lv3)
+            {
+                if(is_array($lv3))
+                {
+                    foreach($lv3 as $lv3tid => $xp)
+                    {
+                        $queryupdate = db_update('probonolab_volontaire_competence')
+                            ->fields(array(
+                            'tid' => $lv3tid,
+                            'duree_xp' => $xp,
+                        ))
+                            ->condition('uid', $form_state['values']['uid'], '=')
+                            ->execute();
+                    }
+                }
+                else
+                {
+                    $queryupdate = db_update('probonolab_volontaire_competence')
+                        ->fields(array(
+                        'tid' => $lv2tid,
+                        'duree_xp' => $lv3,
+                    ))
+                        ->condition('uid', $form_state['values']['uid'], '=')
+                        ->execute();
+                }
+            }
+        }
+    }
+
+
+    if(!empty($_FILES['files']['name']['cv_upload']))
+    {
+        $filepath = 'public://CV/';
+        file_prepare_directory($filepath, FILE_CREATE_DIRECTORY);
+        $file = file_save_upload('cv_upload', array('file_validate_extensions' => array('txt doc pdf docx odf rtf jpg jpeg png zip rar 7zip')), $filepath);
+
+        $file->status = FILE_STATUS_PERMANENT;
+        $file->uid = $form_state['values']['uid'];
+        $file = file_save($file);
+        if(!$file){
+            drupal_set_message(t('Il y a eu un problème lors de l\'envoi de votre CV'), $type = 'error');
+        }
+        $cv_fid = $file->fid;
+    }
+    elseif(!empty($form_state['values']['cv_delete']))
+    {
+        $cv_fid = NULL;
+    }
+    else
+    {
+        $cv_fid = $form_state['values']['cv'];
+    }
+    /*
+    $form_state['values']['prive']
+    $form_state['values']['info_projets']
+    $form_state['values']['projet_type']
+    'prive' => (!empty($form_state['values']['prive'])) ? $form_state['values']['prive'] : NULL,*/
+
+    $queryupdate = db_update('probonolab_volontaire')
+        ->fields(array(
+        'telephone' => $form_state['values']['mobile'],
+        'tel_fixe' => (!empty($form_state['values']['fixe'])) ? $form_state['values']['fixe'] : NULL,
+        'cv_fid' => (!empty($cv_fid)) ? $cv_fid : NULL,
+        'cp' => (!empty($form_state['values']['cp'])) ? $form_state['values']['cp'] : NULL,
+        'adresse' => (!empty($form_state['values']['adresse'])) ? $form_state['values']['adresse'] : NULL,
+        'ville' => (!empty($form_state['values']['ville'])) ? $form_state['values']['ville'] : NULL,
+        'dispo ' => (!empty($form_state['values']['dispo'])) ? $form_state['values']['dispo'] : NULL,
+        'competences_tid' => (!empty($comps)) ? json_encode($comps) : NULL,
+        'linkedin' => (!empty($form_state['values']['linkedin'])) ? $form_state['values']['linkedin'] : NULL,
+        'viadeo' => (!empty($form_state['values']['viadeo'])) ? $form_state['values']['viadeo'] : NULL,
+        'site_web' => (!empty($form_state['values']['site_web'])) ? $form_state['values']['site_web'] : NULL,
+        'motivations' => (!empty($form_state['values']['motivations'])) ? $form_state['values']['motivations'] : NULL,
+        'prive' => (!empty($form_state['values']['prive'])) ? $form_state['values']['prive'] : NULL,
+        'projet_type' => (!empty($form_state['values']['projet_type'])) ? json_encode($form_state['values']['projet_type']) : NULL,
+        'inform_projet' => (!empty($form_state['values']['inform_projet'])) ? json_encode($form_state['values']['inform_projet']) : NULL,
+    ))
+        ->condition('uid', $form_state['values']['uid'], '=')
+        ->execute();
+    //drupal_set_message(print_r($form_state['values']));
+}
+/*from volontaire*/
+function probonolab_volontaire_form($form, &$form_state) {
+    global $user;
+
+    $admin = user_access('administer users');
+    $form['#attributes'] = array('class' => array('volontaire'));
+
+    //$form['#tree'] = TRUE;
+    // If we aren't admin but already logged on, go to the user page instead.
+    if (!empty($user->uid)) {
+        $form['deja_log'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div id="message-remerciement"><p>Vous êtes déjà connecté.</p></div>',
+        );
+    }
+    if(empty($form['deja_log'])) {
+        $form['#prefix'] = '<div id="form-volontaire"><h2>Votre contact</h2>';
+        $form['#suffix'] = '</div>';
+        $form['#user'] = drupal_anonymous_user();
+        $form['#user_category'] = 'register';
+
+        $form['#attached']['library'][] = array('system', 'jquery.cookie');
+        $form['#attributes']['class'][] = 'user-info-from-cookie';
+
+        // Start with the default user account fields.
+        user_account_form($form, $form_state);
+
+        // Attach field widgets, and hide the ones where the 'user_register_form'
+        // setting is not on.
+        field_attach_form('user', $form['#user'], $form, $form_state);
+        foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+            if (empty($instance['settings']['user_register_form'])) {
+                $form[$field_name]['#access'] = FALSE;
+            }
+        }
+        //hide($form['field_type_contact']['und']);
+        $form['account']['#weight'] = 0;
+        $form['account']['#prefix'] = '<div class="gauche">';
+        $form['account']['#suffix'] = '</div>';
+        $form['account']['pass']['#description'] = '';
+        $form['account']['mail']['#title'] = t('Adresse mail');
+        $form['account']['mail']['#description'] = '';
+        $form['account']['mail']['#size'] = 25;
+        $form['account']['name']['#description'] = '';
+        $form['account']['name']['#size'] = 25;
+        //$form['account']['pass']['#weight'] =  7;
+        $form['field_contact_cv']['und'][0]['#description'] = '';
+        unset($form['field_contact_comp']);
+        unset($form['field_contact_cp']);
+        unset($form['field_contact_cv']);
+        //$form['field_contact_comp']['#prefix'] = '<br clear="all" />';
+        /*$form['gauche_top'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div class="gauche" style="float:left; width:45%;">',
+        );
+        $form['gauche_bot'] = array(
+            '#type' => 'markup',
+            '#markup' => '</div>',
+            '#weight' => 0,
+        );*/
+        $form['droite_top'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div class="droite">',
+            '#weight' => 1.5,
+        );
+        $form['cp'] = array(
+            '#type' => 'textfield',
+            '#size' => 20,
+            '#maxlength' => 5,
+            '#title' => t('Code postal'),
+            '#required' => TRUE,
+            '#weight' => 4,
+        );
+        $form['droite_bot'] = array(
+            '#type' => 'markup',
+            '#markup' => '</div>',
+            '#weight' => 6.5,
+        );
+
+
+        $form['comps'] = array(
+            '#type' => 'container',
+            '#tree' => true,
+            '#language' => 'und',
+        );
+        $form['telephone'] = array(
+            '#type' => 'textfield',
+            '#size' => 25,
+            '#title' => t('Téléphone'),
+            '#required' => TRUE,
+            '#weight' => 4,
+        );
+        $form['linkedin'] = array(
+            '#type' => 'textfield',
+            '#size' => 25,
+            '#title' => t('Profil Linkedin'),
+            '#required' => FALSE,
+            '#weight' => 4,
+            //'#value' => 'http://www.linkedin.com/',
+        );
+        $form['cv'] = array(
+            '#type' => 'file',
+            '#size' => 19,
+            '#title' => t('CV'),
+            '#weight' => 7,
+            '#prefix' => '<br clear="all" />',
+        );
+        $Type = array ('Marathon Probono Mouves Lyon 5 avril 2013' => 'Marathon Probono Mouves Lyon 5 avril 2013',
+            'Marathon Probono Clichy 13 avril 2013' => 'Marathon Probono Clichy 13 avril 2013',
+            'Campus Probono HEC 26 avril 2013' => 'Campus Probono HEC 26 avril 2013',
+            'Campus Probono Grenoble EM 7 mai 2013'=> 'Campus Probono Grenoble EM 7 mai 2013',
+            'Campus Probono EM Lyon 16 mai 2013'=> 'Campus Probono EM Lyon 16 mai 2013',
+            'Campus Probono ESSEC 21 mai 2013'=> 'Campus Probono ESSEC 21 mai 2013',
+            'Campus Probono ESCP 24 mai 2013'=> 'Campus Probono ESCP 24 mai 2013',
+            'Campus Probono Sciences Po 30 mai 2013'=> 'Campus Probono Sciences Po 30 mai 2013',
+            'Marathon Probono Mécénova 13 juin 2013'=> 'Marathon Probono Mécénova 13 juin 2013',
+            'Conseil Probono'=> 'Conseil Probono',
+
+            'Je ne sais pas'=> 'je ne sais pas');
+        // + $result = view_get_view('ma_vue');
+        $form['Type'] = array(
+            '#type' => 'select',
+            '#title' => t('Avez vous une préférence pour un projet?'),
+            '#required' => FALSE,
+            '#options' => $Type,
+            '#size' => 12,
+            '#weight' => 8,
+        );
+        $form['actions'] = array('#type' => 'actions');
+        $form['actions']['submit'] = array(
+            '#type' => 'submit',
+            '#ajax' => array(
+                'callback' => 'probonolab_volontaire_callback',
+                'wrapper' => 'form-volontaire',
+                'name' => 'submit-volontaire',
+                'method' => 'replace',
+                'effect' => 'fade',
+            ),
+            '#value' => t('Valider'),
+        );
+
+        $form['#validate'][] = 'user_register_validate';
+        $form['#validate'][] = 'user_register_volontaire_validate';
+        // Add the final user registration form submit handler.
+        //$form['#submit'][] = 'user_register_submit';
+        $form['#submit'][] = 'user_register_volontaire_submit';
+
+    }
+    return $form;
+}
+
+function user_register_volontaire_submit($form, &$form_state) {
+    $admin = $form_state['values']['administer_users'];
+
+    if (!variable_get('user_email_verification', TRUE) || $admin) {
+        $pass = $form_state['values']['pass'];
+    }
+    else {
+        $pass = user_password();
+    }
+    $notify = !empty($form_state['values']['notify']);
+
+    // Remove unneeded values.
+    form_state_values_clean($form_state);
+
+    $form_state['values']['pass'] = $pass;
+    $form_state['values']['init'] = $form_state['values']['mail'];
+
+    $account = $form['#user'];
+
+    entity_form_submit_build_entity('user', $account, $form, $form_state);
+
+    // Populate $edit with the properties of $account, which have been edited on
+    // this form by taking over all values, which appear in the form values too.
+    $edit = array_intersect_key((array) $account, $form_state['values']);
+    $account = user_save($account, $edit);
+
+    // Terminate if an error occurred during user_save().
+    if (!$account) {
+        drupal_set_message(t("Error saving user account."), 'error');
+        $form_state['redirect'] = '';
+        return;
+    }
+    $form_state['user'] = $account;
+    $form_state['values']['uid'] = $account->uid;
+
+    watchdog('user', 'New user: %name (%email).', array('%name' => $form_state['values']['name'], '%email' => $form_state['values']['mail']), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+
+    // Add plain text password into user account to generate mail tokens.
+    $account->password = $pass;
+
+    // New administrative account without notification.
+    $uri = entity_uri('user', $account);
+    if ($admin && !$notify) {
+        drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+    }
+    // No e-mail verification required; log in user immediately.
+    elseif (!$admin && !variable_get('user_email_verification', TRUE) && $account->status) {
+        _user_mail_notify('register_no_approval_required', $account);
+        $form_state['uid'] = $account->uid;
+        user_login_submit(array(), $form_state);
+        drupal_set_message(t('Registration successful. You are now logged in.'));
+        $form_state['redirect'] = '';
+    }
+    // No administrator approval required.
+    elseif ($account->status || $notify) {
+        $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
+        _user_mail_notify($op, $account);
+        if ($notify) {
+            drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+        }
+        else {
+            drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
+            $form_state['redirect'] = '';
+        }
+    }
+    // Administrator approval required.
+    else {
+        _user_mail_notify('register_pending_approval', $account);
+        drupal_set_message(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
+        $form_state['redirect'] = '';
+    }
+
+
+    if(!empty($_FILES['files']['name']['cv']))
+    {
+        $filepath = 'public://CV/';
+        file_prepare_directory($filepath, FILE_CREATE_DIRECTORY);
+        $file = file_save_upload('cv', array('file_validate_extensions' => array('txt doc pdf docx odf rtf jpg jpeg png zip rar 7zip')), $filepath);
+
+        $file->status = FILE_STATUS_PERMANENT;
+        $file->uid = $form_state['values']['uid'];
+        $file = file_save($file);
+        if(!$file){
+            drupal_set_message(t('Il y a eu un problème lors de l\'envoi de votre CV'), $type = 'error');
+        }
+    }
+
+    if(!empty($_POST['comp']))
+    {
+        $comps = $_POST['comp'];
+        $listecomps = '';
+        foreach($comps as $lv1tid => $lv2)
+        {
+            foreach($lv2 as $lv2tid => $lv3)
+            {
+                if(is_array($lv3))
+                {
+                    foreach($lv3 as $lv3tid => $xp)
+                    {
+                        $queryinsert = db_insert('probonolab_volontaire_competence')
+                            ->fields(array(
+                            'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+                            'tid' => $lv3tid,
+                            'duree_xp' => $xp,
+                        ))
+                            ->execute();
+                    }
+                }
+                else
+                {
+                    $queryinsert = db_insert('probonolab_volontaire_competence')
+                        ->fields(array(
+                        'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+                        'tid' => $lv2tid,
+                        'duree_xp' => $lv3,
+                    ))
+                        ->execute();
+                }
+            }
+        }
+    }
+    $queryinsert = db_insert('probonolab_volontaire')
+        ->fields(array(
+        'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+        'telephone' => $form_state['values']['telephone'],
+        'linkedin' => $form_state['values']['linkedin'],
+        'cv_fid' => (!empty($file)) ? $file->fid : NULL,
+        'cp' => $form_state['values']['cp'],
+        'competences_tid' => (!empty($comps)) ? json_encode($comps) : NULL,
+        'competences' => (!empty($listecomps)) ? $listecomps : NULL,
+        'motivations' => (!empty($form_state['values']['field_contact_motiv']['und'][0]['value'])) ? $form_state['values']['field_contact_motiv']['und'][0]['value'] : NULL,
+        'provenance' => 'probonolab.org',
+        'Type' => $form_state['values']['Type'],
+    ))
+        ->execute();
+    //On enregistre le champ linkedin dans le user Drupal
+    $user = user_load($form_state['values']['uid']);
+    $user->field_linkedin['und'][0]['value'] = $form_state['values']['linkedin'];
+    user_save($user);
+
+    //ttt();
+
+
+    //On enregistre le champ options dans le user Drupal
+    $user = user_load($form_state['values']['uid']);
+    $user->field_mes_options['und'][0]['value'] = $form_state['values']['mes_options'];
+    user_save($user);
+
+
+}
+function probonolab_volontaire_callback($form, $form_state) {
+
+    if(!empty($_POST['comp']))
+    {
+        $comps = $_POST['comp'];
+        foreach($comps as $key => $item)
+        {
+            $form['comps']['und'][] = array(
+                '#type' => 'hidden',
+                '#value' => $item,
+                '#attributes' => array('name' => 'comp['.$key.']'),
+            );
+        }
+    }
+    if(!empty($form_state['executed']))
+    {
+        $confirmation = array(
+            '#type'		 =>	 'markup',
+            '#markup'	 =>	 '<div id="message-remerciement">
+								<h2>Merci&nbsp;!</h2>
+								<p>Un message de bienvenue avec des instructions supplémentaires a été envoyé à votre adresse de courriel.</p> <p class="right signature">A bientôt</p>
+							  </div>',
+        );
+        return $confirmation;
+    }
+    else
+    {
+        return $form;
+    }
+}
+
+
+/*form association*/
+function probonolab_association_form($form, &$form_state) {
+    global $user;
+
+    $admin = user_access('administer users');
+    $form['#attributes'] = array('class' => array('association'));
+
+    //$form['#tree'] = TRUE;
+    // If we aren't admin but already logged on, go to the user page instead.
+    if (!empty($user->uid)) {
+        $form['deja_log'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div id="message-remerciement"><p>Vous êtes déjà enregistré.</p></div>',
+        );
+    }
+    if(empty($form['deja_log'])) {
+        $form['#prefix'] = '<div id="form-association">';
+        $form['#suffix'] = '</div>';
+        $form['#user'] = drupal_anonymous_user();
+        $form['#user_category'] = 'register';
+
+        $form['#attached']['library'][] = array('system', 'jquery.cookie');
+        $form['#attributes']['class'][] = 'user-info-from-cookie';
+
+        // Start with the default user account fields.
+        user_account_form($form, $form_state);
+
+        // Attach field widgets, and hide the ones where the 'user_register_form'
+        // setting is not on.
+        field_attach_form('user', $form['#user'], $form, $form_state);
+        foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+            if (empty($instance['settings']['user_register_form'])) {
+                $form[$field_name]['#access'] = FALSE;
+            }
+        }
+
+        hide($form['field_contact_cp']);
+        hide($form['field_contact_cv']);
+        hide($form['field_contact_comp']);
+        hide($form['field_contact_motiv']);
+        hide($form['field_contact_newsletter']);
+        $form['account']['#weight'] = 0;
+        $form['account']['#prefix'] = '<div class="gauche">';
+        //$form['account']['#suffix'] = '</div>';
+        $form['account']['pass']['#description'] = '';
+        $form['account']['mail']['#title'] = t('Adresse mail');
+        $form['account']['mail']['#description'] = '';
+        $form['account']['mail']['#size'] = 25;
+        $form['account']['name']['#description'] = '';
+        $form['account']['name']['#size'] = 25;
+
+        $form['field_contact_cv']['und'][0]['#description'] = '';
+
+        $form['p1'] = array(
+            '#type' => 'markup',
+            '#markup' => '<span class="titre-form">'.t('Vous').'</span>',
+            '#weight' => 0,
+        );
+
+        $form['fonction'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Fonction dans l\'association'),
+            '#required' => TRUE,
+            '#weight' => 4,
+        );
+        $form['mobile'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Téléphone mobile'),
+            '#required' => TRUE,
+            '#weight' => 5,
+        );
+        $form['fixe'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Téléphone fixe'),
+            '#weight' => 6,
+            '#suffix' => '</div>',
+        );
+
+        $form['asso'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Nom de l’association'),
+            '#required' => TRUE,
+            '#prefix' => '<div class="droite">',
+            '#weight' => 7,
+        );
+        $form['adresse'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Adresse'),
+            '#required' => TRUE,
+            '#weight' => 8,
+        );
+        $form['cp'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#maxlength' => 5,
+            '#title' => t('Code postal'),
+            '#required' => TRUE,
+            '#weight' => 9,
+        );
+        $form['ville'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Ville'),
+            '#required' => TRUE,
+            '#weight' => 10,
+        );
+        $form['site_web'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Site web'),
+            '#weight' => 11,
+        );
+        $form['reconnaissance'] = array(
+            '#type' => 'checkboxes',
+            '#size' => '25',
+            '#title' => t('L\'association est-elle reconnue'),
+            '#options' => array(
+                'ig' => t('d\'intérêt général ?'),
+                'up' => t('d\'utilité publique ?'),
+            ),
+            '#suffix' => '</div>',
+            '#weight' => 12,
+        );
+
+        $form['p2'] = array(
+            '#type' => 'markup',
+            '#markup' => '<br clear="all" /><span class="titre-form">'.t('Votre association').'</span>',
+            '#weight' => 13,
+        );
+        $form['objet'] = array(
+            '#type' => 'textarea',
+            '#size' => '25',
+            '#title' => t('Object social ou mission'),
+            '#required' => TRUE,
+            '#weight' => 14,
+        );
+
+        $form['secteur'] = array(
+            '#type' => 'checkboxes',
+            '#title' => t('Secteur d\'activité'),
+            '#options' => drupal_map_assoc(array(
+                t('Social'),
+                t('Education'),
+                t('Insertion professionnelle'),
+                t('Santé'),
+                t('Environnement'),
+                t('Culture'),
+                t('ESS'),
+                t('Solidarité internationale'),
+                t('Sport'),
+                t('Fédération et réseaux'),
+            )),
+            '#required' => TRUE,
+            '#weight' => 15,
+        );
+
+        $form['demande'] = array(
+            '#type' => 'textarea',
+            '#cols' => 45,
+            '#prefix' => '<br clear="all" />',
+            '#title' => t('Avez-vous une demande précise à nous faire parvenir?'),
+            '#weight' => 16,
+
+        );
+        //$form['p2']['field_contact_connu'] = $form['field_contact_connu'];
+        $form['field_contact_connu']['#weight'] = 17;
+        //unset($form['field_contact_connu']);
+
+        $form['actions'] = array('#type' => 'actions');
+        $form['actions']['submit'] = array(
+            '#type' => 'submit',
+            '#ajax' => array(
+                'callback' => 'probonolab_association_callback',
+                'wrapper' => 'form-association',
+                'name' => 'submit-asso1',
+            ),
+            '#value' => t('Valider'),
+        );
+        $form['#validate'][] = 'user_register_validate';
+        $form['#validate'][] = 'user_register_association_validate';
+        // Add the final user registration form submit handler.
+        // $form['#submit'][] = 'user_register_submit';
+        $form['#submit'][] = 'user_register_association_submit';
+
+
+    }
+
+    return $form;
+}
+function probonolab_association_callback($form, &$form_state) {
+    if(!empty($form_state['executed']))
+    {
+        $confirmation = array(
+            '#type'		 =>	 'markup',
+            '#markup'	 =>	 '<div id="message-remerciement">
+								<h2>Merci&nbsp;!</h2>
+								<p>Un message de bienvenue avec des instructions supplémentaires a été envoyé à votre adresse de courriel. </p> <p class="right signature">A bientôt</p>
+							  </div>',
+        );
+        return $confirmation;
+    }
+    else
+    {
+        return $form;
+    }
+}
+function user_register_association_validate($form, &$form_state) {
+    if(!preg_match("#^0[6-7]([-. ]?[0-9]{2}){4}$#", $form_state['values']['mobile'])) {
+        form_set_error('mobile', t('Vous devez renseigner un numéro de téléphone mobile valide'));
+    }
+    if(!empty($form_state['values']['fixe']) && !preg_match("#^0[1-9]([-. ]?[0-9]{2}){4}$#", $form_state['values']['fixe'])) {
+        form_set_error('fixe', t('Vous devez renseigner un numéro de téléphone fixe valide'));
+    }
+}
+function user_register_association_submit($form, &$form_state) {
+    $admin = $form_state['values']['administer_users'];
+
+    //mail d'envoi à une asso
+    $mail_envoi = 'Bonjour '.$form_state['values']['field_contact_prenom']['und'][0]['value'].' '.$form_state['values']['field_contact_nom']['und'][0]['value'];
+    $mail_envoi .= ',<br><br>';
+    $mail_envoi .= 'Bienvenue sur le site de Pro Bono Lab. Nous avons bien enregistré votre inscription et vous remercions de votre confiance.';
+    $mail_envoi .= '<br>';
+    $mail_envoi .= 'Nous allons examiner votre demande et prendrons contact avec vous dans les plus brefs délais.';
+    $mail_envoi .= '<br><br>';
+    $mail_envoi .= 'Pour toute question, écrivez-nous à l\'adresse<a href="mailto:association@probonolab.org">association@probonolab.org</a>';
+    $mail_envoi .= '<br><br>';
+    $mail_envoi .= 'L\'équipe du Lab';
+    $mail_envoi .= '<br><br>';
+    $mail_envoi .= 'PS : Ce message vous a été envoyé par un automate, il est inutile d\'y répondre.';
+
+    if (!variable_get('user_email_verification', TRUE) || $admin) {
+        $pass = $form_state['values']['pass'];
+    }
+    else {
+        $pass = user_password();
+    }
+    $notify = !empty($form_state['values']['notify']);
+
+    // Remove unneeded values.
+    form_state_values_clean($form_state);
+
+    $form_state['values']['pass'] = $pass;
+    $form_state['values']['init'] = $form_state['values']['mail'];
+
+    $account = $form['#user'];
+
+    entity_form_submit_build_entity('user', $account, $form, $form_state);
+
+    // Populate $edit with the properties of $account, which have been edited on
+    // this form by taking over all values, which appear in the form values too.
+    $edit = array_intersect_key((array) $account, $form_state['values']);
+    $account = user_save($account, $edit);
+
+    // Terminate if an error occurred during user_save().
+    if (!$account) {
+        drupal_set_message(t("Error saving user account."), 'error');
+        $form_state['redirect'] = '';
+        return;
+    }
+    $form_state['user'] = $account;
+    $form_state['values']['uid'] = $account->uid;
+
+    watchdog('user', 'New user: %name (%email).', array('%name' => $form_state['values']['name'], '%email' => $form_state['values']['mail']), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+
+    // Add plain text password into user account to generate mail tokens.
+    $account->password = $pass;
+
+    // New administrative account without notification.
+    $uri = entity_uri('user', $account);
+    if ($admin && !$notify) {
+        drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+    }
+    // No e-mail verification required; log in user immediately.
+    elseif (!$admin && !variable_get('user_email_verification', TRUE) && $account->status) {
+        probonolab_association_send($form_state['values'], $mail_envoi);
+        //_user_mail_notify('register_no_approval_required', $account);
+        $form_state['uid'] = $account->uid;
+        user_login_submit(array(), $form_state);
+        drupal_set_message(t('Registration successful. You are now logged in.'));
+        $form_state['redirect'] = '';
+    }
+    // No administrator approval required.
+    elseif ($account->status || $notify) {
+        $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
+        _user_mail_notify($op, $account);
+        if ($notify) {
+            drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+        }
+        else {
+            drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
+            $form_state['redirect'] = '';
+        }
+    }
+    // Administrator approval required.
+    else {
+        _user_mail_notify('register_pending_approval', $account);
+        drupal_set_message(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
+        $form_state['redirect'] = '';
+    }
+    $queryupdate = db_update('field_data_field_type_contact')
+        ->fields(array(
+        'field_type_contact_value' => 'Bénéficiaire',
+    ))
+        ->condition('entity_id', $form_state['values']['uid'], '=')
+        ->execute();
+    $queryupdate = db_update('field_revision_field_type_contact')
+        ->fields(array(
+        'field_type_contact_value' => 'Bénéficiaire',
+    ))
+        ->condition('entity_id', $form_state['values']['uid'], '=')
+        ->execute();
+    $provenance = (empty($form_state['values']['provenance'])) ? 'probonolab.org' : $form_state['values']['provenance'];
+    $queryinsert = db_insert('probonolab_association')
+        ->fields(array(
+        'uid' => $form_state['values']['uid'],
+        'fonction' => $form_state['values']['fonction'],
+        'mobile' => $form_state['values']['mobile'],
+        'fixe' => $form_state['values']['fixe'],
+        'asso_nom' => $form_state['values']['asso'],
+        'asso_adresse' => $form_state['values']['adresse'],
+        'asso_cp' => $form_state['values']['cp'],
+        'asso_ville' => $form_state['values']['ville'],
+        'asso_site_web' => $form_state['values']['site_web'],
+        'asso_reconnu' => json_encode($form_state['values']['reconnaissance']),
+        'asso_objet' => $form_state['values']['objet'],
+        'asso_secteur' => json_encode($form_state['values']['secteur']),
+        'asso_demande' => $form_state['values']['demande'],
+        'provenance' => $provenance,
+    ))
+        ->execute();
+}
+
+/*form autodiagnostic*/
+function probonolab_autodiagnostic_form($form, &$form_state) {
+    $form['#attributes'] = array('class' => array('autodiagnostic'));
+    $form['p1'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Votre organisation'),
+    );
+    $form['p1']['salaries'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nombre de salariés permanents ETP'),
+        '#prefix' => '<div class="gauche">',
+        '#required' => TRUE,
+    );
+    $form['p1']['benevoles'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nombre de bénévoles'),
+        '#required' => TRUE,
+    );
+    $form['p1']['volontaires'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nombre de volontaires'),
+        '#required' => TRUE,
+    );
+    $form['p1']['antennes'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nombre d\'antennes'),
+        '#required' => TRUE,
+    );
+    $form['p1']['rayon'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Quelle est votre rayon d\'action ?'),
+        '#options' => array(
+            0 => t('Communes'),
+            1 => t('Département'),
+            3 => t('Région'),
+            4 => t('National'),
+            5 => t('International'),
+        ),
+        '#required' => TRUE,
+    );
+
+    $form['p1']['relations'] = array(
+        '#type' => 'radios',
+        '#title' => t('Quelles sont vos relations que vous entretenez avec votre territoire ? '),
+        '#options' => array(
+            0 => t('Très bonnes'),
+            1 => t('Bonnes'),
+            2 => t('Moyennes'),
+            3 => t('Implantation récente'),
+        ),
+    );
+
+    $form['p2'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Le pro bono et vous'),
+
+    );
+    $form['p2']['q1'] = array(
+        '#type' => 'radios',
+        '#title' => t('L’association a déjà eu recours au pro bono - y compris bénévolat et mécénat de compétences.'),
+        '#options' => array(
+            0 => t('oui'),
+            1 => t('non'),
+            2 => t('en cours'),
+            3 => t('Projet possible'),
+        ),
+    );
+    $form['p2']['q2'] = array(
+        '#type' => 'radios',
+        '#title' => t('Le bureau de l’association soutient ou participe au recrutement et à la gestion de bénévoles et volontaires compétents.'),
+        '#options' => array(
+            0 => t('oui'),
+            1 => t('non'),
+            2 => t('en cours'),
+            3 => t('Projet possible'),
+        ),
+    );
+    $form['p2']['q3'] = array(
+        '#type' => 'radios',
+        '#title' => t('L’association peut désigner une personne qui sera responsable d’un projet pro bono dans son intégralité.'),
+        '#options' => array(
+            0 => t('oui'),
+            1 => t('non'),
+            2 => t('en cours'),
+            3 => t('Projet possible'),
+        ),
+    );
+    $form['p2']['commentaire'] = array(
+        '#type' => 'textarea',
+        '#cols' => 45,
+        '#title' => t('Auriez-vous besoin d\'aide sur l\'un de ces sujets ou sur un programme mené par votre association en particulier ?'),
+
+    );
+
+    $form['p3'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Vos besoins'),
+
+    );
+    $form['p3']['okbesoins'] = array(
+        '#type' => 'radios',
+        '#title' => t('Avez-vous identifié un ou des besoins ?'),
+        '#options' => array(
+            0 => t('oui'),
+            1 => t('non'),
+        ),
+        '#suffix' => '<div id="besoins"></div>',
+    );
+
+
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => 'Valider',
+    );
+    return $form;
+}
+
+
+/*formulaire entreprise*/
+function probonolab_entreprise_form($form, &$form_state) {
+    $form['#attributes'] = array('class' => array('entreprise'));
+    $form['#prefix'] = '<div id="form-entreprise">';
+    $form['#suffix'] = '</div>';
+    $form['p1'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Votre contact'),
+    );
+    $form['p1']['nom'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nom'),
+        '#prefix' => '<div class="gauche">',
+        '#required' => TRUE,
+    );
+    $form['p1']['prenom'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Prénom'),
+        '#required' => TRUE,
+    );
+    $form['p1']['email'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Email'),
+        '#suffix' => '</div>',
+        '#required' => TRUE,
+    );
+
+    $form['p1']['tel'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Téléphone'),
+        '#prefix' => '<div class="droite">',
+        '#required' => TRUE,
+    );
+    $form['p1']['organisation'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Nom de votre organisation'),
+        '#required' => TRUE,
+    );
+    $form['p1']['fonction'] = array(
+        '#type' => 'textfield',
+        '#size' => '25',
+        '#title' => t('Fonction dans l\'organisation'),
+        '#suffix' => '</div>',
+        '#required' => TRUE,
+    );
+
+    $form['p2'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Votre besoin'),
+    );
+    $form['p2']['besoin'] = array(
+        '#type' => 'textarea',
+        '#cols' => 45,
+        '#title' => t('Décrivez votre situation et votre besoin'),
+
+    );
+
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#ajax' => array(
+            'callback' => 'probonolab_entreprise_callback',
+            'wrapper' => 'form-entreprise',
+            'name' => 'submit2',
+        ),
+        '#value' => 'Valider',
+    );
+    return $form;
+}
+function probonolab_entreprise_callback($form, $form_state) {
+
+    return $form;
+}
+function probonolab_entreprise_form_validate($form, &$form_state) {
+    if (!valid_email_address($form_state['values']['email'])) {
+        form_set_error('email', t('That e-mail address is not valid.'));
+    }
+    if(!preg_match("#^0[1-9]([-. ]?[0-9]{2}){4}$#", $form_state['values']['tel'])) {
+        form_set_error('tel', t('Vous devez renseigner un numéro de téléphone valide'));
+    }
+}
+function probonolab_entreprise_form_submit($form, &$form_state){
+    probonolab_contact_entreprise_mail_send($form_state['values']);
+}
+
+function probonolab_block_info() {
+    $blocks['probonolab_user_enrichir'] = array(
+        'info' => t('Bouton enrichir'),
+    );
+    $blocks['probonolab_user_retour'] = array(
+        'info' => t('Bouton retour'),
+    );
+    $blocks['probonolab_candidater_projet'] = array(
+        'info' => t('Bouton candidater au projet'),
+    );
+    $blocks['probonolab_projets_realises'] = array(
+        'info' => t('Projets réalisés'),
+    );
+    return $blocks;
+}
+function probonolab_block_view($delta = '') {
+    global $user;
+    /*block enrichir */
+    if($delta == 'probonolab_user_enrichir') {
+        $url_comp = explode('/', request_uri());
+        $lien = (!empty($url_comp[2])) ? $user->uid.'/edit' : 'user/'.$user->uid.'/edit';
+        $block['subject'] = NULL;
+        $markup = '<a class="bt-sinscrire" href="'.$lien.'">Editer</a>';
+        $block['content'] = array(
+            '#markup' => $markup,
+        );
+        return $block;
+    }
+    if($delta == 'probonolab_user_retour') {
+        //$url_comp = explode('/', request_uri());
+        //$lien = (!empty($url_comp[2])) ? $user->uid : 'user/'.$user->uid.'';
+        $block['subject'] = NULL;
+        $markup = '<a class="bt-sinscrire" href="../'.$user->uid.'">Voir</a>';
+        $block['content'] = array(
+            '#markup' => $markup,
+        );
+        return $block;
+    }
+
+    /*block candidater*/
+    if($delta == 'probonolab_candidater_projet') {
+        $block['subject'] = NULL;
+        $node = node_load(arg(1));
+        //$markup = '<a class="bt-sinscrire" href="candidater/'.$user->uid.'">Candidater</a>';
+        if($user->uid == 0) {
+            $inscrire['class'] = array('bt-sinscrire');
+            $desinscrire['style'] = array('display:none');
+            drupal_add_js('$(document).ready(function() {
+				$(".bt-sinscrire").click( function(){
+				var titre = "Inscrivez-vous pour participer à nos projets";
+				var options = {overlayColor: "#E8E8E8", overlayOpacity: "0.2"};
+				Shadowbox.open({
+				content:    \'<h1 id="titre_box"><a href="volontaire" style="color:#676767;">\'+titre+\'</a></h1>\',
+				player:     "html",
+				title:      \'<a id="fermer" onclick="Shadowbox.close()" title="Fermer">\',
+				height:     40,
+				width:      400,
+				options:	options
+				});
+				
+				
+				return false;
+			});
+			
+			});', 'inline');
+        } elseif($user->uid > 0) {
+
+            $deja_inscrit = false;
+
+            if(!empty($node->field_candidature)){
+                foreach($node->field_candidature['und'] as $id => $candidature) {
+                    if($candidature['uid'] == $user->uid) {
+                        $deja_inscrit = true;
+                        $key = $id;
+                    }
+                }
+            }
+            drupal_add_js('$(document).ready(function() {
+					$(".bt-desinscrire").click( function(){
+							var titre = \'Votre candidature a été annulée.  Vous pouvez <a href="http://probonolab.org/projets">consulter nos autres projets</a>.\';
+							var options = {overlayColor: "#E8E8E8", overlayOpacity: "0.2"};
+							Shadowbox.open({
+							content:    \'<h1 id="titre_box">\'+titre+\'</h1>\',
+							player:     "html",
+							title:      \'<a id="fermer" onclick="Shadowbox.close()" title="Fermer">\',
+							height:     70,
+							width:      400,
+							options:	options
+							});
+							return false;
+						
+					});
+					$(".bt-sinscrire").click( function(){
+					
+							var titre = "Merci pour votre candidature. Nous prendrons contact avec vous les plus brefs délais.";
+							var options = {overlayColor: "#E8E8E8", overlayOpacity: "0.2"};
+							Shadowbox.open({
+							content:    \'<h1 id="titre_box">\'+titre+\'</h1>\',
+							player:     "html",
+							title:      \'<a id="fermer" onclick="Shadowbox.close()" title="Fermer">\',
+							height:     70,
+							width:      400,
+							options:	options
+							});
+							
+							return false;
+						});
+				
+				});', 'inline');
+            drupal_add_library('system', 'drupal.ajax');
+            $desinscrire['class'] = array('bt-desinscrire', 'use-ajax');
+            $inscrire['class'] = array('bt-sinscrire', 'use-ajax');
+            if($deja_inscrit) {
+
+                $inscrire['style'] = array('display:none');
+                //$link = l(t('Se retirer'), 'candidater/'.$user->uid, array('attributes' => array('class' => array('bt-sinscrire'))));
+
+            } else {
+
+
+                $desinscrire['style'] = array('display:none');
+
+            }
+        }
+
+        $link = l(t('Candidater'), 'candidater/'.$node->nid, array('attributes' => $inscrire));
+        $link .= l(t('Annuler'), 'decandidater/'.$node->nid, array('attributes' => $desinscrire));
+
+        $markup = "<div id='candidater'>$link</div>";
+
+        $block['content'] = array(
+            '#markup' => $markup,
+        );
+        return $block;
+    }
+
+}
+/*ajax callback pour bouton candidater*/
+function ajax_candidater_reponse($node, $type = 'ajax') {
+    global $user;
+    if ($type == 'ajax') {
+        $nb = 0;
+        if(!empty($node->field_candidature)){
+            $nb = count($node->field_candidature['und']);
+        }
+
+        if($nb==0){
+            $node->field_candidature['und'][0]['uid'] = $user->uid;
+        } else {
+            $node->field_candidature['und'][$nb+1]['uid'] = $user->uid;
+        }
+        field_attach_update('node', $node);
+        $volontaire = user_load($user->uid);
+        $mail = array(
+            'prenom' => $volontaire->field_contact_prenom['und'][0]['safe_value'],
+            'nom' => $volontaire->field_contact_nom['und'][0]['safe_value'],
+            'pseudo' => $volontaire->name,
+            'uid' => $volontaire->uid,
+            'projet' => $node->title,
+        );
+        probonolab_candidature_projet_mail_send($mail);
+        //$output = t('ok');
+        $output = l(t('Se retirer'), 'decandidater/'.$node->nid, array('attributes' => array('class' => array('bt-desinscrire', 'use-ajax'))));;
+        $commands = array();
+
+
+        $commands[] = ajax_command_css('.bt-sinscrire', array('display' => 'none'));
+        $commands[] = ajax_command_css('.bt-desinscrire', array('display' => 'block'));
+        $page = array('#type' => 'ajax', '#commands' => $commands);
+        ajax_deliver($page);
+    }
+}
+function ajax_decandidater_reponse($node, $type = 'ajax') {
+    global $user;
+    if ($type == 'ajax') {
+        $nb = 0;
+        if(!empty($node->field_candidature)){
+            $nb = count($node->field_candidature['und']);
+        }
+        $candidatures = array();
+        if($nb > 1){
+            $trouve = false;
+            foreach($node->field_candidature['und'] as $id => $candidature) {
+                if($candidature['uid'] != $user->uid) {
+                    $candidatures[]['uid'] = $candidature['uid'];
+                }
+            }
+            $node->field_candidature['und'] = $candidatures;
+        } else {
+            $node->field_candidature['und'] = array();
+        }
+
+        field_attach_update('node', $node);
+        //$output = t('ok');
+        //$output = l(t('Candidater'), 'candidater/'.$node->nid, array('attributes' => array('class' => array('bt-sinscrire', 'use-ajax'))));;
+        $commands = array();
+
+        $commands[] = ajax_command_css('.bt-desinscrire', array('display' => 'none'));
+        $commands[] = ajax_command_css('.bt-sinscrire', array('display' => 'block'));
+        $page = array('#type' => 'ajax', '#commands' => $commands);
+        ajax_deliver($page);
+    }
+}
+
+function page_competences($tid, $uid) {
+    $lv1 = taxonomy_term_load($tid);
+    $taxs = taxonomy_get_tree($vid = 5, $parent = $tid, $max_depth = NULL, $load_entities = TRUE);
+
+    $output .= '<h1 id="titre_box">'.$lv1->name.'</h1>';
+    $output .= '<div id="formtip"><form id="'.$tid.'" class="'.$lv1->name.'"><p>Indiquez vos compétences et précisez votre niveau d’expérience</p>';
+    $output .= '<table><tr><th></th><th>0-1 ans</th><th>2-4 ans</th><th>5-9 ans</th><th>+10 ans</th></tr>';
+    foreach($taxs as $id => $tax) {
+        $child = taxonomy_get_children($tax->tid);
+        if(empty($child)) {
+            $parent = taxonomy_get_parents($tax->tid);
+            $parent_tid = array_keys($parent);
+            $class = ($parent_tid[0] == $lv1->tid) ? 'lv2' : 'lv3' ;
+            $idtax = ($class == 'lv2') ? '['.$lv1->tid.']['.$tax->tid.']' : '['.$lv1->tid.']['.$parent_tid[0].']['.$tax->tid.']' ;
+            $output.= '<tr class="'.$class.'"><td class="first '.$idtax.'" id="'.$tax->tid.'">'.$tax->name.'</td>';
+            $output.= '<td><input type="radio" name="comp'.$idtax.'" value="0-1" /></td>';
+            $output.= '<td><input type="radio" name="comp'.$idtax.'" value="2-4" /></td>';
+            $output.= '<td><input type="radio" name="comp'.$idtax.'" value="5-9" /></td>';
+            $output.= '<td><input type="radio" name="comp'.$idtax.'" value="+10" /></td>';
+            $output.= '<td><a class="reset" id="comp'.$idtax.'" title="Retirer cette compétence" href="#">X</a></td></tr>';
+        } else {
+            $output.= '<tr class="lv2"><td class="first" id="'.$tax->tid.'"><strong>'.$tax->name.'</strong></td><td></td><td></td><td></td><td></td></tr>';
+        }
+    }
+    $output .= '</table><span class="valider" onclick="$.colorbox.close()">Valider</span></form></div>';
+    return $output;
+}
+
+
+function probonolab_association_externe_form($form, &$form_state) {
+    global $user;
+
+    $admin = user_access('administer users');
+    $form['#attributes'] = array('class' => array('association'));
+
+    //$form['#tree'] = TRUE;
+    // If we aren't admin but already logged on, go to the user page instead.
+    if (!empty($user->uid)) {
+        $form['deja_log'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div id="message-remerciement"><p>Vous êtes déjà enregistré.</p></div>',
+        );
+    }
+    if(empty($form['deja_log'])) {
+        $form['#prefix'] = '<div id="form-association">';
+        $form['#suffix'] = '</div>';
+        $form['#user'] = drupal_anonymous_user();
+        $form['#user_category'] = 'register';
+
+        $form['#attached']['library'][] = array('system', 'jquery.cookie');
+        $form['#attributes']['class'][] = 'user-info-from-cookie';
+
+        // Start with the default user account fields.
+        user_account_form($form, $form_state);
+
+        // Attach field widgets, and hide the ones where the 'user_register_form'
+        // setting is not on.
+        field_attach_form('user', $form['#user'], $form, $form_state);
+        foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+            if (empty($instance['settings']['user_register_form'])) {
+                $form[$field_name]['#access'] = FALSE;
+            }
+        }
+
+        hide($form['field_contact_cp']);
+        hide($form['field_contact_cv']);
+        hide($form['field_contact_comp']);
+        hide($form['field_contact_motiv']);
+        hide($form['field_contact_newsletter']);
+        $form['account']['#weight'] = 0;
+        $form['account']['#prefix'] = '<div class="gauche">';
+        //$form['account']['#suffix'] = '</div>';
+        $form['account']['pass']['#description'] = '';
+        $form['account']['mail']['#title'] = t('Adresse mail');
+        $form['account']['mail']['#description'] = '';
+        $form['account']['mail']['#size'] = 25;
+        $form['account']['name']['#description'] = '';
+        $form['account']['name']['#size'] = 25;
+
+        $form['field_contact_cv']['und'][0]['#description'] = '';
+
+        $form['p1'] = array(
+            '#type' => 'markup',
+            '#markup' => '<span class="titre-form">'.t('Vous').'</span>',
+            '#weight' => 0,
+        );
+
+        $form['fonction'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Fonction dans l\'association'),
+            '#required' => TRUE,
+            '#weight' => 4,
+        );
+        $form['mobile'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Téléphone mobile'),
+            '#required' => TRUE,
+            '#weight' => 5,
+        );
+        $form['fixe'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Téléphone fixe'),
+            '#weight' => 6,
+            '#suffix' => '</div>',
+        );
+
+        $form['asso'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Nom de l’association'),
+            '#required' => TRUE,
+            '#prefix' => '<div class="droite">',
+            '#weight' => 7,
+        );
+        $form['adresse'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Adresse'),
+            '#required' => TRUE,
+            '#weight' => 8,
+        );
+        $form['cp'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#maxlength' => 5,
+            '#title' => t('Code postal'),
+            '#required' => TRUE,
+            '#weight' => 9,
+        );
+        $form['ville'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Ville'),
+            '#required' => TRUE,
+            '#weight' => 10,
+        );
+        $form['site_web'] = array(
+            '#type' => 'textfield',
+            '#size' => '25',
+            '#title' => t('Site web'),
+            '#weight' => 11,
+        );
+        $form['reconnaissance'] = array(
+            '#type' => 'checkboxes',
+            '#size' => '25',
+            '#title' => t('L\'association est-elle reconnue'),
+            '#options' => array(
+                'ig' => t('d\'intérêt général ?'),
+                'up' => t('d\'utilité publique ?'),
+            ),
+            '#suffix' => '</div>',
+            '#weight' => 12,
+        );
+
+        $form['p2'] = array(
+            '#type' => 'markup',
+            '#markup' => '<br clear="all" /><span class="titre-form">'.t('Votre association').'</span>',
+            '#weight' => 13,
+        );
+        $form['objet'] = array(
+            '#type' => 'textarea',
+            '#size' => '25',
+            '#title' => t('Object social ou mission'),
+            '#required' => TRUE,
+            '#weight' => 14,
+        );
+
+        $form['secteur'] = array(
+            '#type' => 'checkboxes',
+            '#title' => t('Secteur d\'activité'),
+            '#options' => drupal_map_assoc(array(
+                t('Social'),
+                t('Education'),
+                t('Insertion professionnelle'),
+                t('Santé'),
+                t('Environnement'),
+                t('Culture'),
+                t('ESS'),
+                t('Solidarité internationale'),
+                t('Sport'),
+                t('Fédération et réseaux'),
+            )),
+            '#required' => TRUE,
+            '#weight' => 15,
+        );
+
+        $form['demande'] = array(
+            '#type' => 'textarea',
+            '#cols' => 45,
+            '#prefix' => '<br clear="all" />',
+            '#title' => t('Avez-vous une demande précise à nous faire parvenir?'),
+            '#weight' => 16,
+
+        );
+        //$form['p2']['field_contact_connu'] = $form['field_contact_connu'];
+        $form['field_contact_connu']['#weight'] = 17;
+        //unset($form['field_contact_connu']);
+        $form['provenance'] = array(
+            '#type' => 'hidden',
+            '#value' => arg(2),
+        );
+        $form['actions'] = array('#type' => 'actions');
+        $form['actions']['submit'] = array(
+            '#type' => 'submit',
+            '#ajax' => array(
+                'callback' => 'probonolab_association_import_callback',
+                'wrapper' => 'form-association',
+                'name' => 'submit-asso',
+                'method' => 'replace',
+                'effect' => 'fade',
+            ),
+            '#value' => t('Valider'),
+        );
+        $form['#validate'][] = 'user_register_validate';
+        $form['#validate'][] = 'user_register_association_validate';
+        // Add the final user registration form submit handler.
+        //$form['#submit'][] = 'user_register_submit';
+        $form['#submit'][] = 'user_register_association_externe_submit';
+
+
+    }
+
+    return $form;
+}
+function probonolab_association_import_callback($form, $form_state) {
+    if(!empty($form_state['executed']))
+    {
+        $confirmation = array(
+            '#type'		 =>	 'markup',
+            '#markup'	 =>	 '<div id="message-remerciement">
+								<h2>Merci&nbsp;!</h2>
+								<p>Un message de bienvenue avec des instructions supplémentaires a été envoyé à votre adresse de courriel. </p> <p class="right signature">A bientôt</p>
+							  </div>',
+        );
+        return $confirmation;
+    }
+    else
+    {
+        return $form;
+    }
+}
+
+function user_register_association_externe_submit($form, &$form_state) {
+    $admin = $form_state['values']['administer_users'];
+    // mail à envoyer
+    $mail_envoi = 'Bravo '.$form_state['values']['field_contact_prenom']['und'][0]['value'].' '.$form_state['values']['field_contact_nom']['und'][0]['value'];
+    $mail_envoi .= ',<br><br>';
+    $mail_envoi .= 'Vous avez rejoint la communauté des professionnels engagés de Pro Bono Lab !';
+    $mail_envoi .= '<br><br>';
+    $mail_envoi .= 'Vous êtes désormais inscrit au marathon pro bono CLICHY <a href="http://www.marathonprobono.fr/">www.marathonprobono.fr</a>';
+    $mail_envoi .= '<br><br>';
+    $mail_envoi .= 'A tout de suite sur <a href="http://www.marathonprobono.fr/">www.marathonprobono.fr</a>';
+
+
+
+    if (!variable_get('user_email_verification', TRUE) || $admin) {
+        $pass = $form_state['values']['pass'];
+    }
+    else {
+        $pass = user_password();
+    }
+    $notify = !empty($form_state['values']['notify']);
+
+    // Remove unneeded values.
+    form_state_values_clean($form_state);
+
+    $form_state['values']['pass'] = $pass;
+    $form_state['values']['init'] = $form_state['values']['mail'];
+
+    $account = $form['#user'];
+
+    entity_form_submit_build_entity('user', $account, $form, $form_state);
+
+    // Populate $edit with the properties of $account, which have been edited on
+    // this form by taking over all values, which appear in the form values too.
+    $edit = array_intersect_key((array) $account, $form_state['values']);
+    $account = user_save($account, $edit);
+
+    // Terminate if an error occurred during user_save().
+    if (!$account) {
+        drupal_set_message(t("Error saving user account."), 'error');
+        $form_state['redirect'] = '';
+        return;
+    }
+    $form_state['user'] = $account;
+    $form_state['values']['uid'] = $account->uid;
+
+    watchdog('user', 'New user: %name (%email).', array('%name' => $form_state['values']['name'], '%email' => $form_state['values']['mail']), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+
+    // Add plain text password into user account to generate mail tokens.
+    $account->password = $pass;
+
+    // New administrative account without notification.
+    $uri = entity_uri('user', $account);
+    if ($admin && !$notify) {
+        drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+    }
+    // No e-mail verification required; log in user immediately.
+    elseif (!$admin && !variable_get('user_email_verification', TRUE) && $account->status) {
+        probonolab_marathonprobono_send($form_state['values'], $mail_envoi);
+        $form_state['uid'] = $account->uid;
+        user_login_submit(array(), $form_state);
+        drupal_set_message(t('Registration successful. You are now logged in.'));
+        $form_state['redirect'] = '';
+    }
+    // No administrator approval required.
+    elseif ($account->status || $notify) {
+        $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
+        _user_mail_notify($op, $account);
+        if ($notify) {
+            drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+        }
+        else {
+            drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
+            $form_state['redirect'] = '';
+        }
+    }
+    // Administrator approval required.
+    else {
+        _user_mail_notify('register_pending_approval', $account);
+        drupal_set_message(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
+        $form_state['redirect'] = '';
+    }
+    $queryupdate = db_update('field_data_field_type_contact')
+        ->fields(array(
+        'field_type_contact_value' => 'Bénéficiaire',
+    ))
+        ->condition('entity_id', $form_state['values']['uid'], '=')
+        ->execute();
+    $queryupdate = db_update('field_revision_field_type_contact')
+        ->fields(array(
+        'field_type_contact_value' => 'Bénéficiaire',
+    ))
+        ->condition('entity_id', $form_state['values']['uid'], '=')
+        ->execute();
+    $provenance = (empty($form_state['values']['provenance'])) ? 'probonolab.org' : $form_state['values']['provenance'];
+    $queryinsert = db_insert('probonolab_association')
+        ->fields(array(
+        'uid' => $form_state['values']['uid'],
+        'fonction' => $form_state['values']['fonction'],
+        'mobile' => $form_state['values']['mobile'],
+        'fixe' => $form_state['values']['fixe'],
+        'asso_nom' => $form_state['values']['asso'],
+        'asso_adresse' => $form_state['values']['adresse'],
+        'asso_cp' => $form_state['values']['cp'],
+        'asso_ville' => $form_state['values']['ville'],
+        'asso_site_web' => $form_state['values']['site_web'],
+        'asso_reconnu' => json_encode($form_state['values']['reconnaissance']),
+        'asso_objet' => $form_state['values']['objet'],
+        'asso_secteur' => json_encode($form_state['values']['secteur']),
+        'asso_demande' => $form_state['values']['demande'],
+        'provenance' => $provenance,
+    ))
+        ->execute();
+}
+function probonolab_volontaire_externe_form($form, &$form_state) {
+    global $user;
+
+    $admin = user_access('administer users');
+    $form['#attributes'] = array('class' => array('volontaire'));
+
+    //$form['#tree'] = TRUE;
+    // If we aren't admin but already logged on, go to the user page instead.
+    if (!empty($user->uid)) {
+        $form['deja_log'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div id="message-remerciement"><p>Vous êtes déjà connecté.</p></div>',
+        );
+    }
+    if(empty($form['deja_log'])) {
+        $form['#prefix'] = '<div id="form-volontaire"><h2 style="display:block; color:#FDC613;">Votre contact</h2>';
+        $form['#suffix'] = '</div>';
+        $form['#user'] = drupal_anonymous_user();
+        $form['#user_category'] = 'register';
+
+        $form['#attached']['library'][] = array('system', 'jquery.cookie');
+        $form['#attributes']['class'][] = 'user-info-from-cookie';
+
+        // Start with the default user account fields.
+        user_account_form($form, $form_state);
+
+        // Attach field widgets, and hide the ones where the 'user_register_form'
+        // setting is not on.
+        field_attach_form('user', $form['#user'], $form, $form_state);
+        foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+            if (empty($instance['settings']['user_register_form'])) {
+                $form[$field_name]['#access'] = FALSE;
+            }
+        }
+        unset($form['field_contact_motiv']);
+
+        $form['field_contact_newsletter'];
+        $form['account']['#prefix'] = '<div class="gauche">';
+        $form['account']['#suffix'] = '</div>';
+        $form['account']['pass']['#description'] = '';
+        $form['account']['mail']['#title'] = t('Adresse mail');
+        $form['account']['mail']['#description'] = '';
+        $form['account']['mail']['#size'] = 25;
+        $form['account']['name']['#description'] = '';
+        $form['account']['name']['#size'] = 25;
+        $form['field_contact_connu']['#prefix'] = '<br clear="all" />';
+        unset($form['field_contact_comp']);
+        unset($form['field_contact_cp']);
+        unset($form['field_contact_cv']);
+
+
+
+        /*$form['titre_competences'] = array(
+            '#type' => 'markup',
+            '#markup' => '<h2 style="display:block; color:#FDC613;">Sélectionner vos compétences</h2>',
+            '#weight' => -20,
+            '#prefix' => '<br clear="all" />',
+        );
+
+        $form['competences'] = array(
+            '#type' => 'markup',
+            '#markup' => liste_competences($user->uid),
+            '#weight' => -19,
+        );
+
+        $form['select_comp'] = array(
+            '#type' => 'markup',
+            '#markup' => '<br clear="all" />
+                          <div class="listLabels" >
+                            <div class="highlight" >Votre sélection</div>
+                            <div class="tags" style="margin-left: 135px;"></div>
+                          </div>
+                          <div id="message-remerciement" class="no_comp"><p>Veuillez sélectionner vos compétences avant de vous inscrire.</p></div>',
+            '#weight' => -18,
+            '#suffix' => '<br clear="all" />',
+        );*/
+        /*$form['comps'] = array(
+            '#type' => 'markup',
+            '#markup' => '<div id="edit-comps"></div>',
+        );*/
+        $form['comps'] = array(
+            '#type' => 'container',
+            '#tree' => true,
+            '#language' => 'und',
+        );
+        /*$form['titre_contact'] = array(
+            '#type' => 'markup',
+            '#markup' => '<h2 style="color:#FDC613;">Votre contact</h2>',
+            '#weight' => -17,
+            '#prefix' => '<br clear="all" />',
+        );*/
+        //$form['field_contact_comp']['#prefix'] = '<br clear="all" />';
+        //'Mes compétences " par "L\'atelier auquel je souhaite participer" avec les 5 propositions d\'ateliers en dessous: marketing/communication, GRH, finance/comptabilité, technologie et web/digital'
+        //$form[''];
+        $form['field_contact_nom']['#prefix'] = '<div class="droite">';
+        $form['field_contact_nom']['#weight'] = 3;
+        $form['field_contact_prenom']['#weight'] = 3.1;
+        $form['telephone'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Téléphone'),
+            '#required' => TRUE,
+            '#size' => 25,
+            '#weight' => 3.5,
+        );
+        $form['linkedin'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Profil Linkedin'),
+            '#required' => FALSE,
+            '#size' => 25,
+            '#weight' => 3.5,
+        );
+        $form['cp'] = array(
+            '#type' => 'textfield',
+            '#size' => 12,
+            '#maxlength' => 10,
+            '#title' => t('Code postal'),
+            '#required' => TRUE,
+            '#weight' => 4,
+            '#suffix' => '</div>',
+        );
+
+        $form['cv'] = array(
+            '#type' => 'file',
+            '#size' => 19,
+            '#title' => t('CV'),
+            '#weight' => 5,
+            '#prefix' => '<br clear="all" />',
+        );
+
+        $form['preference_projet'] = array(
+            '#type' => 'select',
+            '#title' => t('Avez vous une préférence pour un projet?'),
+            '#required' => FALSE,
+            '#options' => array(t('Marathon Probono Mouves Lyon 5 avril 2013'),
+                t('Marathon Probono Clichy 13 avril 2013'),
+                t('Campus Probono HEC 26 avril 2013'),
+                t('Campus Probono Grenoble EM 7 mai 2013'),
+                t('Campus Probono EM Lyon 16 mai 2013'),
+                t('Campus Probono ESSEC 21 mai 2013'),
+                t('Campus Probono ESCP 24 mai 2013'),
+                t('Campus Probono Sciences Po 30 mai 2013'),
+                t('Marathon Probono Mécénova 13 juin 2013'),
+                t('Conseil Probono'),
+                t('Je ne sais pas'),
+            ),
+            '#size' => 10,
+            '#weight' => 6.5,
+        );
+
+        /*$form['atelier'] = array(
+            '#type' => 'radios',
+            '#title' => t('L\'atelier auquel je souhaite participer'),
+            '#options' => drupal_map_assoc(array(
+                t('Gestion des RH'),
+                t('Finance / Comptabilité'),
+                t('Web / Digital'),
+            )),
+            '#default_value' => 'Gestion des RH',
+            '#required' => TRUE,
+            '#weight' => 6,
+        );*/
+
+
+
+        $form['motivations'] = array(
+            '#type' => 'textarea',
+            '#size' => 25,
+            '#title' => t('Pourquoi souhaitez vous participer à un projet probono ? '),
+            '#weight' => 13,
+        );
+        $form['provenance'] = array(
+            '#type' => 'hidden',
+            '#value' => arg(2),
+        );
+
+        $form['actions'] = array('#type' => 'actions');
+        $form['actions']['submit'] = array(
+            '#type' => 'submit',
+            '#ajax' => array(
+                'callback' => 'probonolab_volontaire_externe_callback',
+                'wrapper' => 'form-volontaire',
+                'name' => 'submit-volontaire-externe',
+                'method' => 'replace',
+                'effect' => 'fade',
+            ),
+            '#value' => t('Valider'),
+        );
+        $form['#validate'][] = 'user_register_validate';
+        $form['#validate'][] = 'user_register_volontaire_validate';
+        // Add the final user registration form submit handler.
+        //$form['#submit'][] = 'user_register_submit';
+        $form['#submit'][] = 'user_register_volontaire_externe_submit';
+
+
+    }
+    //var_dump($form); exit;
+    return $form;
+}
+function probonolab_volontaire_externe_callback($form, $form_state) {
+    if(!empty($_POST['comp']))
+    {
+        $comps = $_POST['comp'];
+        foreach($comps as $lv1tid => $lv2)
+        {
+            foreach($lv2 as $lv2tid => $lv3)
+            {
+                if(is_array($lv3))
+                {
+                    foreach($lv3 as $lv3tid => $xp)
+                    {
+                        $form['comps']['und'][] = array(
+                            '#type' => 'hidden',
+                            '#value' => $xp,
+                            '#attributes' => array('name' => 'comp['.$lv1tid.']['.$lv2tid.']['.$lv3tid.']'),
+                        );
+                    }
+                }
+                else
+                {
+                    $form['comps']['und'][] = array(
+                        '#type' => 'hidden',
+                        '#value' => $lv3,
+                        '#attributes' => array('name' => 'comp['.$lv1tid.']['.$lv2tid.']'),
+                    );
+                }
+            }
+        }
+    }
+    if(!empty($form_state['executed']))
+    {
+        $confirmation = array(
+            '#type'		 =>	 'markup',
+            '#markup'	 =>	 '<div id="message-remerciement">
+								<h2>Merci&nbsp;!</h2>
+								<p>Un message de bienvenue avec des instructions supplémentaires a été envoyé à votre adresse de courriel. </p> <p class="right signature">A bientôt</p>
+							  </div>',
+        );
+        return $confirmation;
+    }
+    else
+    {
+        return $form;
+    }
+}
+function user_register_volontaire_validate($form, &$form_state) {
+    if(!preg_match("#^(2[ab]|0[1-9]|[1-9][0-9])[0-9]{3}$#", $form_state['values']['cp'])) {
+        form_set_error('cp', t('Vous devez renseigner un code postal valide'));
+    }
+    if(!empty($form_state['values']['telephone']) && !preg_match("#^0[1-9]([-. ]?[0-9]{2}){4}$#", $form_state['values']['telephone'])) {
+        form_set_error('telephone', t('Vous devez renseigner un numéro de téléphone valide'));
+    }
+}
+function user_register_volontaire_externe_submit($form, &$form_state) {
+    $admin = $form_state['values']['administer_users'];
+    // mail à envoyer aux inscrits du marathon
+    $mail_envoi = 'Bravo '.$form_state['values']['field_contact_prenom']['und'][0]['value'].' '.$form_state['values']['field_contact_nom']['und'][0]['value'];
+    $mail_envoi .= ',<br /><br />';
+    $mail_envoi .= 'Vous avez rejoint la communauté des professionnels engagés de Pro Bono Lab !';
+    $mail_envoi .= '<br /><br />';
+    $mail_envoi .= 'Vous êtes désormais inscrit au marathon pro bono CLICHY <a href="http://www.marathonprobono.fr/">www.marathonprobono.fr</a>';
+    $mail_envoi .= '<br /><br />';
+    $mail_envoi .= 'A tout de suite sur <a href="http://www.marathonprobono.fr/">www.marathonprobono.fr</a>';
+
+
+
+    if (!variable_get('user_email_verification', TRUE) || $admin) {
+        $pass = $form_state['values']['pass'];
+    }
+    else {
+        $pass = user_password();
+    }
+    $notify = !empty($form_state['values']['notify']);
+
+    // Remove unneeded values.
+    form_state_values_clean($form_state);
+
+    $form_state['values']['pass'] = $pass;
+    $form_state['values']['init'] = $form_state['values']['mail'];
+
+    $account = $form['#user'];
+
+    entity_form_submit_build_entity('user', $account, $form, $form_state);
+
+    // Populate $edit with the properties of $account, which have been edited on
+    // this form by taking over all values, which appear in the form values too.
+    $edit = array_intersect_key((array) $account, $form_state['values']);
+    $account = user_save($account, $edit);
+
+    // Terminate if an error occurred during user_save().
+    if (!$account) {
+        drupal_set_message(t("Error saving user account."), 'error');
+        $form_state['redirect'] = '';
+        return;
+    }
+    $form_state['user'] = $account;
+    $form_state['values']['uid'] = $account->uid;
+
+    watchdog('user', 'New user: %name (%email).', array('%name' => $form_state['values']['name'], '%email' => $form_state['values']['mail']), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+
+    // Add plain text password into user account to generate mail tokens.
+    $account->password = $pass;
+
+    // New administrative account without notification.
+    $uri = entity_uri('user', $account);
+    if ($admin && !$notify) {
+        drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+    }
+    // No e-mail verification required; log in user immediately.
+    elseif (!$admin && !variable_get('user_email_verification', TRUE) && $account->status) {
+        probonolab_marathonprobono_send($form_state['values'], $mail_envoi);
+        $form_state['uid'] = $account->uid;
+        user_login_submit(array(), $form_state);
+        drupal_set_message(t('Registration successful. You are now logged in.'));
+        $form_state['redirect'] = '';
+    }
+    // No administrator approval required.
+    elseif ($account->status || $notify) {
+        $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
+        _user_mail_notify($op, $account);
+        if ($notify) {
+            drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+        }
+        else {
+            drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
+            $form_state['redirect'] = '';
+        }
+    }
+    // Administrator approval required.
+    else {
+        _user_mail_notify('register_pending_approval', $account);
+        drupal_set_message(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
+        $form_state['redirect'] = '';
+    }
+
+
+    if(!empty($_FILES['files']['name']['cv']))
+    {
+        $filepath = 'public://CV/';
+        file_prepare_directory($filepath, FILE_CREATE_DIRECTORY);
+        $file = file_save_upload('cv', array('file_validate_extensions' => array('txt doc pdf docx odf rtf jpg jpeg png zip rar 7zip')), $filepath);
+
+        $file->status = FILE_STATUS_PERMANENT;
+        $file->uid = $form_state['values']['uid'];
+        $file = file_save($file);
+        if(!$file){
+            drupal_set_message(t('Il y a eu un problème lors de l\'envoi de votre CV'), $type = 'error');
+        }
+    }
+    // enregistrement des compétences
+    if(!empty($_POST['comp']))
+    {
+        $comps = $_POST['comp'];
+        $listecomps = '';
+        foreach($comps as $lv1tid => $lv2)
+        {
+            foreach($lv2 as $lv2tid => $lv3)
+            {
+                if(is_array($lv3))
+                {
+                    foreach($lv3 as $lv3tid => $xp)
+                    {
+                        $queryinsert = db_insert('probonolab_volontaire_competence')
+                            ->fields(array(
+                            'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+                            'tid' => $lv3tid,
+                            'duree_xp' => $xp,
+                        ))
+                            ->execute();
+                    }
+                }
+                else
+                {
+                    $queryinsert = db_insert('probonolab_volontaire_competence')
+                        ->fields(array(
+                        'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+                        'tid' => $lv2tid,
+                        'duree_xp' => $lv3,
+                    ))
+                        ->execute();
+                }
+            }
+        }
+    }
+    $provenance = (empty($form_state['values']['provenance'])) ? 'probonolab.org' : $form_state['values']['provenance'];
+    $queryinsert = db_insert('probonolab_volontaire')
+        ->fields(array(
+        'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+        'telephone' => $form_state['values']['telephone'],
+        'cv_fid' => (!empty($file)) ? $file->fid : NULL,
+        'linkedin' => $form_state['values']['linkedin'],
+        'cp' => $form_state['values']['cp'],
+        'competences_tid' => (!empty($comps)) ? json_encode($comps) : NULL,
+        //'competences' => (!empty($listecomps)) ? $listecomps : NULL,
+        'motivations' => (!empty($form_state['values']['motivations'])) ? $form_state['values']['motivations'] : NULL,
+        'provenance' => $provenance,
+    ))
+        ->execute();
+    if($provenance == 'marathonprobono.fr'){
+        $querymarathon = db_insert('probonolab_marathon')
+            ->fields(array(
+            'uid' => (!empty($form_state['values']['uid'])) ? $form_state['values']['uid'] : rand(0,99),
+            'marathon' => $provenance,
+            'atelier' => (!empty($form_state['values']['atelier'])) ? $form_state['values']['atelier'] : NULL,
+        ))
+            ->execute();
+    }
+}
+function page_volontaire_form(){
+    $output = '';
+    //$output = drupal_get_form('probonolab_volontaire_externe_form');
+    return $output;
+}
+function page_association_form(){
+    $output = drupal_get_form('probonolab_association_externe_form');
+    return $output;
+}
+function page_entreprise_form(){
+    $output = drupal_get_form('probonolab_entreprise_form');
+    return $output;
+}
+//compte des inscriptions sur marathonprobono.fr
+function page_marathon_compte() {
+    $ateliers = array(
+        0 => 'Marketing / Communication',
+        1 => 'Gestion des RH',
+        2 => 'Finance / Comptabilité',
+        3 => 'Technologie',
+        4 => 'Web / Digital',
+    );
+    foreach($ateliers as $key => $atelier)
+    {
+        $count = db_select('probonolab_marathon')
+            ->condition('marathon', 'marathonprobono.fr')
+            ->condition('atelier', $atelier)
+            ->countQuery()
+            ->execute()
+            ->fetchField();
+        $liste[$atelier] = $count;
+    }
+    $array['ateliers'] = array(
+        '#items' => $liste,
+    );
+    return $array;
+}
+function volontaire_db_select($uid)
+{
+    $queryvolontaire = db_select('probonolab_volontaire')
+        ->fields('probonolab_volontaire')
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+    if($queryvolontaire) {
+        return $queryvolontaire;
+    }
+    return FALSE;
+}
+function nombre_heure_probono($uid)
+{
+    $queryvolontaire = db_select('probonolab_volontaire')
+        ->fields('probonolab_volontaire')
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+    if($queryvolontaire) {
+        $nb_heures = 0;
+        $result_nb_heures = db_select('field_data_field_heure', 'fh');
+        $result_nb_heures->join('node', 'n', 'fh.entity_id = n.nid');
+        $result_nb_heures->join('field_data_field_equipe', 'fe', 'fh.entity_id = fe.entity_id');
+        $result_nb_heures->join('field_data_field_staff_volontaire', 'fsv', 'fe.field_equipe_value = fsv.entity_id');
+        $result_nb_heures->fields('fh', array('field_heure_value'))
+            ->condition('fsv.field_staff_volontaire_uid', $uid, '=');
+
+        $res_nb_heures = $result_nb_heures->execute()->fetchAll();
+        $nb_projets = count($res_nb_heures);
+        foreach($res_nb_heures as $key => $item)
+        {
+            $nb_heures += $item->field_heure_value;
+        }
+        return array($nb_heures, $nb_projets);
+    }
+    return FALSE;
+}
+function liste_competences($uid)
+{
+    global $base_url;
+    drupal_add_js(drupal_get_path('theme', 'murph') .'/js/comps.js', 'file');
+    $markup = '<div id="list-badge">';
+    $taxs = taxonomy_get_tree($vid = 5, $parent = 0, $max_depth = 1, $load_entities = TRUE);
+    foreach($taxs as $id => $tax) {
+        $src = empty($tax->field_icone) ? 'http://lorempixel.com/85/85/nature/' : image_style_url('globe', $tax->field_icone['und'][0]['uri']);
+        $markup .= '<a class="badges tip_trigger" href="'.$base_url.'/competences/'.$tax->tid.'/'.$uid.'" >';
+        $markup .= '	<span class="roundedImage" style="background:url('.$src.') no-repeat 0px 0px;">&nbsp;</span>';
+        $markup .= '	<span class="tip">'.$tax->name.'</span>';
+        $markup .= '</a>';
+    }
+    $markup .= '</div>';
+    return $markup;
+}
+function liste_competences_db($uid)
+{
+    $queryvolontaire = db_select('probonolab_volontaire')
+        ->fields('probonolab_volontaire',array('competences_tid'))
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+    if($queryvolontaire) {
+        $tabcomps = json_decode($queryvolontaire['competences_tid'], true);
+    }
+    return $tabcomps;
+}
+function get_telephone_from_uid($uid)
+{
+    $my_telephone = '';
+    $query = db_select('probonolab_volontaire', 'd');
+    $result = $query->condition('uid', $uid)
+        ->fields('d', array('telephone'))
+        ->range(0,1)
+        ->execute();
+    foreach($result as $row) $my_telephone = $row->telephone;
+
+
+    return $my_telephone;
+}

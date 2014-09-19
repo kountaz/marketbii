@@ -1,0 +1,5 @@
+drwx---r-x    3 33009      users               5 Jul  3 15:13 .
+drwx---r-x    7 33009      users               7 Jul  3 15:12 ..
+drwx---r-x    5 33009      users               6 Jul  3 15:15 codemirror
+-rw----r--    1 33009      users            7454 Jul  3 15:11 plugin.js
+-rw----r--    1 33009      users            3559 Jul  3 15:11 plugin.php

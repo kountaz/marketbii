@@ -1,0 +1,5 @@
+name = Module Probonolab
+description = "Ensemble de fonctionnalitées propre au site probonolab."
+core = "7.x"
+
+

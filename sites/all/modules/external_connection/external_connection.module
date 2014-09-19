@@ -1,0 +1,70 @@
+<?php
+/**
+ * Implements hook_help().
+ */
+function external_connection_help($path, $arg) {
+
+  switch ($path) {
+    case "admin/help#external_connection":
+      return '<p>'.  t("External connection") .'</p>';
+      break;
+  }
+}
+function external_connection_menu() {
+	$items = array();
+	$items['connection'] = array(
+		'page callback' => 'external_connection_links',
+		'page arguments' => array(1),
+		'access callback' => 'user_access',
+		'access arguments' => array('access content'),
+		'type' => MENU_CALLBACK,
+	);
+	$items['connection/form'] = array(
+		'page callback' => 'external_connection_popup',
+		'page arguments' => array(1),
+		'access callback' => 'user_access',
+		'access arguments' => array('access content'),
+		'type' => MENU_CALLBACK,
+	);
+	return $items;
+}
+/*function external_connection_theme() {
+	return array(
+		'external_connection_links' => array(
+			'template' => 'external_connection_links',
+			'theme path' => drupal_get_path('module', 'external_connection').'/theme',
+			'override preprocess functions' => TRUE,
+		),
+		'external_connection_popup' => array(
+			'render element' => 'element',
+			'template' => 'external_connection_popup',
+		),
+	);
+}*/
+function external_connection_links() {
+	
+	drupal_add_js(drupal_get_path('module', 'external_connection') . '/popupwindow.js');
+
+	drupal_add_js('
+	$("a.external-connection").live("click", function(event) {
+	  event.preventDefault();
+	  popup("/connection/form", "blabla", 400, 400);
+	});', 'inline');
+	drupal_add_css(drupal_get_path('module', 'external_connection') . '/styles.css', array('group' => CSS_DEFAULT, 'every_page' => TRUE));
+	global $user;
+	if($user->uid) {
+		$volontaire = user_load($user->uid);
+		$output = $volontaire->field_contact_prenom['und'][0]['safe_value'];
+		$output .= ' '.$volontaire->field_contact_nom['und'][0]['safe_value'];
+		$output .= ' <a target="_blank" href="/user/'.$user->uid.'" >mon compte</a>';
+	}
+	else {
+		$output = '<a href="#" class="external-connection">Se connecter</a>';
+	}
+  return $output;
+
+}
+function external_connection_popup() {
+	$form = drupal_get_form('user_login');
+	return $form;
+}
